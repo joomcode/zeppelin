@@ -17,6 +17,9 @@
 
 package org.apache.zeppelin.livy;
 
+import org.apache.zeppelin.interpreter.InterpreterContext;
+import org.apache.zeppelin.interpreter.InterpreterResult;
+
 import java.util.Properties;
 
 /**
@@ -31,6 +34,11 @@ public class LivySparkInterpreter extends BaseLivyInterpreter {
   @Override
   public String getSessionKind() {
     return "spark";
+  }
+
+  @Override
+  public InterpreterResult interpret(String st, InterpreterContext context) {
+    return super.interpret("{" + st + "}", context);
   }
 
   @Override
