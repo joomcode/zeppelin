@@ -295,7 +295,14 @@ public class InterpreterSetting {
   }
 
   private void createLauncher() {
-    if (group.equals("spark")) {
+    LOGGER.warn("Creating launche for group " + group);
+    // Joom local: for historic reasons, spark and livy are used
+    // interchangeably in notebook, so handle 'livy' as well.
+    // It's a bad design in the first place to check for the
+    // name of interpreter group, but fixing this would be a large
+    // change.
+    if (group.equals("spark") || group.equals("livy")) {
+      LOGGER.warn("Using SparkInterpreterLauncher");
       this.launcher = new SparkInterpreterLauncher(this.conf, this.recoveryStorage);
     } else {
       this.launcher = new ShellScriptLauncher(this.conf, this.recoveryStorage);
