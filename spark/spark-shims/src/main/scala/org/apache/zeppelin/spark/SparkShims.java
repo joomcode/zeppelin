@@ -98,8 +98,10 @@ public abstract class SparkShims {
   }
 
   protected String getParagraphId(String jobgroupId) {
-    String[] tokens = jobgroupId.split("-");
-    return tokens[3];
+    int indexOf = jobgroupId.indexOf("-");
+    int secondIndex = jobgroupId.indexOf("-", indexOf + 1);
+    int thirdIndex = jobgroupId.indexOf("-", secondIndex + 1);
+    return jobgroupId.substring(thirdIndex + 1, jobgroupId.length());
   }
 
   protected void buildSparkJobUrl(
