@@ -269,18 +269,6 @@ fi
 
 addJarInDirForIntp "${LOCAL_INTERPRETER_REPO}"
 
-if [[ -n "$ZEPPELIN_IMPERSONATE_USER" ]]; then
-  if [[ "${INTERPRETER_ID}" != "spark" || "$ZEPPELIN_IMPERSONATE_SPARK_PROXY_USER" == "false" ]]; then
-    suid="$(id -u "${ZEPPELIN_IMPERSONATE_USER}")"
-    if [[ -n  "${suid}" || -z "${SPARK_SUBMIT}" ]]; then
-       INTERPRETER_RUN_COMMAND+=("${ZEPPELIN_IMPERSONATE_RUN_CMD[@]}")
-       if [[ -f "${ZEPPELIN_CONF_DIR}/zeppelin-env.sh" ]]; then
-           INTERPRETER_RUN_COMMAND+=("source" "${ZEPPELIN_CONF_DIR}/zeppelin-env.sh;")
-       fi
-    fi
-  fi
-fi
-
 if [[ -n "${SPARK_SUBMIT}" ]]; then
   IFS=' ' read -r -a SPARK_SUBMIT_OPTIONS_ARRAY <<< "${SPARK_SUBMIT_OPTIONS}"
   IFS=' ' read -r -a ZEPPELIN_SPARK_CONF_ARRAY <<< "${ZEPPELIN_SPARK_CONF}"
@@ -297,4 +285,34 @@ fi
 
 # Don't remove this echo, it is for diagnose, this line of output will be redirected to java log4j output.
 echo "Interpreter launch command: ${INTERPRETER_RUN_COMMAND[@]}"
+
+if [[ -n "$ZEPPELIN_IMPERSONATE_USER" ]]; then
+  if [[ "${INTERPRETER_ID}" != "spark" || "$ZEPPELIN_IMPERSONATE_SPARK_PROXY_USER" == "false" ]]; then
+    suid="$(id -u "${ZEPPELIN_IMPERSONATE_USER}")"
+    if [[ -n  "${suid}" || -z "${SPARK_SUBMIT}" ]]; then
+
+       # At this point, we want to execute INTERPRETER_RUN_COMMAND (an array), as different user
+       #
+       # One way is
+       #    sudo -u whatever bash -c "source zeppelin-env.sh; command"
+       # This however requires that we construct command string from array, and take care to
+       # quote any array elements that contain spaces.
+       #
+       # Another way is to do
+       #    sudo -u whatever -E command
+       # which can be executed as array, but it requires that -E option for sudo works,
+       # and that zeppelin-env.sh uses this specific command for impersonalization.
+       #
+       # Since second way is OK for us, and is more reliable, we use it.
+       IFS=' ' read -r -a IMPERSONATE_RUN_CMD_ARRAY <<< "${ZEPPELIN_IMPERSONATE_RUN_CMD}"
+       FINAL_RUN_COMMAND=("${IMPERSONATE_RUN_CMD_ARRAY[@]}" "${INTERPRETER_RUN_COMMAND[@]}")
+       echo $(printf "'%s' " "${FINAL_RUN_COMMAND[@]}") > /tmp/zeppelin-intepreter-run-command
+       exec "${FINAL_RUN_COMMAND[@]}"
+    fi
+  fi
+fi
+
+# We'll arrive here only if the code above did not decide to do impersonation
+# and did 'exec'
+echo $(printf "'%s' " "${INTERPRETER_RUN_COMMAND[@]}") > /tmp/zeppelin-intepreter-run-command
 exec "${INTERPRETER_RUN_COMMAND[@]}"
