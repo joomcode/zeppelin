@@ -51,19 +51,20 @@ is_maintenance_version() {
 }
 
 # Change version in pom.xml
-mvn versions:set -DnewVersion="${TO_VERSION}" -DgenerateBackupPoms=false > /dev/null 2>&1 
+mvn versions:set -DnewVersion="${TO_VERSION}" -DgenerateBackupPoms=false > /dev/null 2>&1
 
 # Change version in example and package files
-sed -i '' 's/-'"${FROM_VERSION}"'.jar",/-'"${TO_VERSION}"'.jar",/g' zeppelin-examples/zeppelin-example-clock/zeppelin-example-clock.json
-sed -i '' 's/"version": "'"${FROM_VERSION}"'",/"version": "'"${TO_VERSION}"'",/g' zeppelin-web/src/app/tabledata/package.json
-sed -i '' 's/"version": "'"${FROM_VERSION}"'",/"version": "'"${TO_VERSION}"'",/g' zeppelin-web/src/app/visualization/package.json
-sed -i '' 's/"version": "'"${FROM_VERSION}"'",/"version": "'"${TO_VERSION}"'",/g' zeppelin-web/src/app/spell/package.json
+sed -i 's/-'"${FROM_VERSION}"'.jar",/-'"${TO_VERSION}"'.jar",/g' zeppelin-examples/zeppelin-example-clock/zeppelin-example-clock.json
+
+sed -i 's/"version": "'"${FROM_VERSION}"'",/"version": "'"${TO_VERSION}"'",/g' zeppelin-web/src/app/tabledata/package.json
+sed -i 's/"version": "'"${FROM_VERSION}"'",/"version": "'"${TO_VERSION}"'",/g' zeppelin-web/src/app/visualization/package.json
+sed -i 's/"version": "'"${FROM_VERSION}"'",/"version": "'"${TO_VERSION}"'",/g' zeppelin-web/src/app/spell/package.json
 
 # Change version in Dockerfile
-sed -i '' 's/Z_VERSION="'"${FROM_VERSION}"'"/Z_VERSION="'"${TO_VERSION}"'"/g' scripts/docker/zeppelin/bin/Dockerfile
+sed -i 's/Z_VERSION="'"${FROM_VERSION}"'"/Z_VERSION="'"${TO_VERSION}"'"/g' scripts/docker/zeppelin/bin/Dockerfile
 
 # Change docker image version in configuration
-sed -i '' sed 's/zeppelin:'"${OLD_VERSION}"'/zeppelin:'"${NEW_VERSION}"'/g' conf/zeppelin-site.xml.template
+sed -i 's/zeppelin:'"${OLD_VERSION}"'/zeppelin:'"${NEW_VERSION}"'/g' conf/zeppelin-site.xml.template
 
 # When preparing new dev version from release tag, doesn't need to change docs version
 if is_dev_version "${FROM_VERSION}" || ! is_dev_version "${TO_VERSION}"; then
@@ -74,10 +75,10 @@ if is_dev_version "${FROM_VERSION}" || ! is_dev_version "${TO_VERSION}"; then
   fi
 
   # Change zeppelin version in docs config
-  sed -i '' 's/ZEPPELIN_VERSION : '"${FROM_VERSION}"'$/ZEPPELIN_VERSION : '"$TO_VERSION"'/g' docs/_config.yml
-  sed -i '' 's/BASE_PATH : \/docs\/'"${FROM_VERSION}"'$/BASE_PATH : \/docs\/'"$TO_VERSION"'/g' docs/_config.yml
+  sed -i 's/ZEPPELIN_VERSION : '"${FROM_VERSION}"'$/ZEPPELIN_VERSION : '"$TO_VERSION"'/g' docs/_config.yml
+  sed -i 's/BASE_PATH : \/docs\/'"${FROM_VERSION}"'$/BASE_PATH : \/docs\/'"$TO_VERSION"'/g' docs/_config.yml
 
   # Change interpreter's maven version in docs and interpreter-list
-  sed -i '' 's/:'"${FROM_VERSION}"'/:'"${TO_VERSION}"'/g' conf/interpreter-list
-  sed -i '' 's/:'"${FROM_VERSION}"'/:'"${TO_VERSION}"'/g' docs/usage/interpreter/installation.md
+  sed -i 's/:'"${FROM_VERSION}"'/:'"${TO_VERSION}"'/g' conf/interpreter-list
+  sed -i 's/:'"${FROM_VERSION}"'/:'"${TO_VERSION}"'/g' docs/usage/interpreter/installation.md
 fi
