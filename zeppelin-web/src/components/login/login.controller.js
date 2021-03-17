@@ -71,8 +71,7 @@ function LoginCtrl($scope, $rootScope, $http, $httpParamSerializer, baseUrlSrv, 
         $scope.loginParams.errorText = data.info;
         angular.element('.nav-login-btn').click();
       }, 1000);
-      let locationPath = $location.path();
-      $location.path('/').search('ref', locationPath);
+      // Joom local: do not redirect to /, as reload will usually work.
     }
   });
 
