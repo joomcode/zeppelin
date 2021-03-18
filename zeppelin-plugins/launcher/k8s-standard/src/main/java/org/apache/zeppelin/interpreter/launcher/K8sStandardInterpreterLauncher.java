@@ -169,6 +169,9 @@ public class K8sStandardInterpreterLauncher extends InterpreterLauncher {
       }
     }
     env.put("INTERPRETER_GROUP_ID", context.getInterpreterGroupId());
+    if (isUserImpersonateForSparkInterpreter(context)) {
+      env.put("HADOOP_USER_NAME", context.getUserName());
+    }
     return env;
   }
 

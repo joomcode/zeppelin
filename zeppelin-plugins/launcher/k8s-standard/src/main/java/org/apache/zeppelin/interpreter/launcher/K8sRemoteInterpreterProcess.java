@@ -376,9 +376,6 @@ public class K8sRemoteInterpreterProcess extends RemoteInterpreterManagedProcess
     if (properties.containsKey(SPARK_DRIVER_MEMORY)) {
       options.append(" --driver-memory " + properties.get(SPARK_DRIVER_MEMORY));
     }
-    if (isUserImpersonated() && !StringUtils.containsIgnoreCase(userName, "anonymous")) {
-      options.append(" --proxy-user " + userName);
-    }
     options.append(" --conf spark.kubernetes.namespace=" + getNamespace());
     options.append(" --conf spark.executor.instances=1");
     options.append(" --conf spark.kubernetes.driver.pod.name=" + getPodName());

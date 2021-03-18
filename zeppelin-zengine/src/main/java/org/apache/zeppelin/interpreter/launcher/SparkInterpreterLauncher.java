@@ -165,7 +165,7 @@ public class SparkInterpreterLauncher extends StandardInterpreterLauncher {
     }
 
     if (context.getOption().isUserImpersonate() && zConf.getZeppelinImpersonateSparkProxyUser()) {
-      sparkConfBuilder.append(" --proxy-user " + context.getUserName());
+      env.put("HADOOP_USER_NAME", context.getUserName());
       sparkProperties.remove("spark.yarn.keytab");
       sparkProperties.remove("spark.yarn.principal");
     }
