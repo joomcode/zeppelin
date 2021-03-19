@@ -114,7 +114,8 @@ public class ConnectionManager {
       if (!socketList.contains(socket)) {
         socketList.add(socket);
       }
-      checkCollaborativeStatus(noteId, socketList);
+      // Disable until https://issues.apache.org/jira/browse/ZEPPELIN-5292 is fixed.
+      // checkCollaborativeStatus(noteId, socketList);
     }
   }
 
@@ -131,7 +132,8 @@ public class ConnectionManager {
       if (socketList != null) {
         socketList.remove(socket);
       }
-      checkCollaborativeStatus(noteId, socketList);
+      // Disable until https://issues.apache.org/jira/browse/ZEPPELIN-5292 is fixed.
+      // checkCollaborativeStatus(noteId, socketList);
     }
   }
 
