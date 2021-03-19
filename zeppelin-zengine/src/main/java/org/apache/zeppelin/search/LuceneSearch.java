@@ -405,10 +405,5 @@ public class LuceneSearch extends SearchService {
     });
     thread.setName("LuceneSearch-RebuildIndex-Thread");
     thread.start();
-    try {
-      thread.join();
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
   }
 }
