@@ -1149,7 +1149,9 @@ public class Note implements JsonSerializable {
     for (Paragraph p : paragraphs) {
       p.parseText();
       p.setNote(this);
-      p.setAuthenticationInfo(AuthenticationInfo.ANONYMOUS);
+      // Joom local: there is no obvious purpose to clean user name
+      // when loading the note.
+      // p.setAuthenticationInfo(AuthenticationInfo.ANONYMOUS);
 
       if (p.getStatus() == Status.PENDING) {
         p.setStatus(Status.ABORT);
