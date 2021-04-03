@@ -225,7 +225,7 @@ public class ZeppelinServer extends ResourceConfig {
 
     // Multiple Web UI
     final WebAppContext defaultWebApp = setupWebAppContext(contexts, conf, conf.getString(ConfVars.ZEPPELIN_WAR), conf.getServerContextPath());
-    final WebAppContext nextWebApp = setupWebAppContext(contexts, conf, conf.getString(ConfVars.ZEPPELIN_ANGULAR_WAR), WEB_APP_CONTEXT_NEXT);
+    final WebAppContext nextWebApp = setupWebAppContext(contexts, conf, conf.getString(ConfVars.ZEPPELIN_ANGULAR_WAR), conf.getServerContextPath() + WEB_APP_CONTEXT_NEXT);
 
     initWebApp(defaultWebApp);
     initWebApp(nextWebApp);
