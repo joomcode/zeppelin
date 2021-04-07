@@ -264,8 +264,14 @@ public class NotebookServer extends WebSocketServlet
       }
 
       TicketContainer.Entry ticketEntry = TicketContainer.instance.getTicketEntry(messagereceived.principal);
-      if (ticketEntry != null &&
-              (messagereceived.ticket == null || !ticketEntry.getTicket().equals(messagereceived.ticket))) {
+      // ticketEntry can be null here if we use header-based auth. Then, we can have WS
+      // connection without going through any auth route, and so without creating
+      // ticket entry.
+      // One approach is to replicate what SecurityRestApi.token does here, but it's
+      // a bit tricky, so just handle it similarly to wrong-token case
+      if (ticketEntry == null
+         || messagereceived.ticket == null
+         || !ticketEntry.getTicket().equals(messagereceived.ticket))) {
         /* not to pollute logs, log instead of exception */
         if (StringUtils.isEmpty(messagereceived.ticket)) {
           LOG.debug("{} message: invalid ticket {} != {}", messagereceived.op,
