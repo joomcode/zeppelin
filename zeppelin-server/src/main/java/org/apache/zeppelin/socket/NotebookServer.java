@@ -271,7 +271,7 @@ public class NotebookServer extends WebSocketServlet
       // a bit tricky, so just handle it similarly to wrong-token case
       if (ticketEntry == null
          || messagereceived.ticket == null
-         || !ticketEntry.getTicket().equals(messagereceived.ticket))) {
+	  || !ticketEntry.getTicket().equals(messagereceived.ticket)) {
         /* not to pollute logs, log instead of exception */
         if (StringUtils.isEmpty(messagereceived.ticket)) {
           LOG.debug("{} message: invalid ticket {} != {}", messagereceived.op,
