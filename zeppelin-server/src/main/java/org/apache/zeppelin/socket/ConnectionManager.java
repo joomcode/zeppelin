@@ -341,7 +341,7 @@ public class ConnectionManager {
     try {
       conn.send(serializeMessage(m));
     } catch (IOException | WebSocketException e) {
-      LOGGER.error("socket error", e);
+      LOGGER.error("socket error for user {}, connection {}", conn.getUser());
     }
     broadcastToWatchers(StringUtils.EMPTY, StringUtils.EMPTY, m);
   }
