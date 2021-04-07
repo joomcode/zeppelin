@@ -48,6 +48,11 @@ public class NotebookSocket extends WebSocketAdapter {
   }
 
   @Override
+  public void onWebSocketError(Throwable cause) {
+    listener.onClose(this, 0, cause.getMessage());
+  }
+
+  @Override
   public void onWebSocketConnect(Session connection) {
     this.connection = connection;
     listener.onOpen(this);
