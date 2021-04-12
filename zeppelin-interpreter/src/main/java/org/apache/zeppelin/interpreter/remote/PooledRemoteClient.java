@@ -103,6 +103,7 @@ public class PooledRemoteClient<T extends TServiceClient> {
       } catch (Exception e1) {
         // thrift framework exception (maybe due to network issue), need to retry
         broken = true;
+        errorCause = e1.getMessage();
         continue;
       } finally {
         if (client != null) {
