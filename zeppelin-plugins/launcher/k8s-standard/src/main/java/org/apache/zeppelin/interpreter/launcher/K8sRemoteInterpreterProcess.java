@@ -20,6 +20,8 @@ package org.apache.zeppelin.interpreter.launcher;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -438,7 +440,34 @@ public class K8sRemoteInterpreterProcess extends RemoteInterpreterManagedProcess
         LOGGER.error("Unable to create a PortForward", e);
       }
     } else {
-      super.processStarted(port, getInterpreterPodDnsName());
+
+      String dnsName = getInterpreterPodDnsName();
+      boolean hostFound = false;
+      for (int i = 0; i < 5; ++i) {
+        if (i > 0) {
+          try {
+            // We'll wait for 2^0, 2^1, 2^2, 2^3 seconds.
+            Thread.sleep(Math.round(Math.pow(2, i - 1) * 1000));
+          } catch (InterruptedException e) {
+            return;
+          }
+        }
+        try {
+          LOGGER.info("Probing DNS name {}".format(dnsName));
+          InetAddress.getByName(dnsName);
+          LOGGER.info("Resolved DNS name {}".format(dnsName));
+        } catch (UnknownHostException e) {
+          continue;
+        }
+        hostFound = true;
+        break;
+      }
+
+      if (!hostFound) {
+        throw new RuntimeException("Could not find interpreter pod via DNS name {}".format(getInterpreterPodDnsName()));
+      }
+
+      super.processStarted(port, dnsName);
     }
     LOGGER.info("Interpreter pod created {}:{}", getHost(), getPort());
     synchronized (started) {

@@ -85,11 +85,10 @@ public class PooledRemoteClient<T extends TServiceClient> {
   }
 
   public <R> R callRemoteFunction(RemoteFunction<R, T> func) {
-    boolean broken = false;
-    String errorCause = null;
-    for (int i = 0;i < RETRY_COUNT; ++ i) {
+    Exception error = null;
+    for (int i = 0; i < RETRY_COUNT; ++ i) {
       T client = null;
-      broken = false;
+      error = null;
       try {
         client = getClient();
         if (client != null) {
@@ -97,22 +96,20 @@ public class PooledRemoteClient<T extends TServiceClient> {
         }
       } catch (InterpreterRPCException e) {
         // zeppelin side exception, no need to retry
-        broken = true;
-        errorCause = e.getErrorMessage();
+        error = e;
         break;
       } catch (Exception e1) {
         // thrift framework exception (maybe due to network issue), need to retry
-        broken = true;
-        errorCause = e1.getMessage();
+        error = e1;
         continue;
       } finally {
         if (client != null) {
-          releaseClient(client, broken);
+          releaseClient(client, error != null);
         }
       }
     }
-    if (broken) {
-      throw new RuntimeException(errorCause);
+    if (error != null) {
+      throw new RuntimeException("could not call interpreter function", error);
     }
     return null;
   }
