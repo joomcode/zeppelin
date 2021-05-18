@@ -51,7 +51,8 @@ limitations under the License.
                     ng-include src="'app/home/notebook-template.html'" ng-class="note_folder_renderer"></li>
               </div>
               <div ng-if="query.q" infinite-scroll="loadMoreNotes()">
-                <li ng-repeat="node in home.notes.flatList | filter:query.q:isFilterNoteComparator | orderBy:home.arrayOrderingSrv.noteFlatListOrdering | limitTo:home.numberOfNotesDisplayed track by $index"
+                <!-- filter pipe appears to do textual match on all properties of source object -->
+                <li ng-repeat="node in home.notes.flatList | filter:query.q | orderBy:home.arrayOrderingSrv.noteFlatListOrdering | limitTo:home.numberOfNotesDisplayed track by $index"
                     ng-include src="'app/home/notebook-template.html'" ng-class="note_folder_renderer"></li>
              </div>
             </ul>

@@ -16,8 +16,9 @@ limitations under the License.
   <!-- note -->
   <div ng-if="node.children == null && isFilterNote(node)" class="note-folder-item">
     <a style="text-decoration: none;" href="#/notebook/{{node.id}}">
+      <!-- The nodes here are formed by note-list.factory.js, and path is without leading slash -->
       <i style="font-size: 10px;"
-         ng-class="query.q && node.isTrash ? 'fa fa-trash-o' : 'icon-doc'"></i> {{getNotePath(node).substring(1, 1000)}}
+         ng-class="query.q && node.isTrash ? 'fa fa-trash-o' : 'icon-doc'"></i> {{node.path || getNoteName(node)}}
     </a>
     <span class="note-folder-item-actions">
       <!-- if note is not in trash -->

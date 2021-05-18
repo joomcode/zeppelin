@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
+<link rel="stylesheet" href="notebook.css">
 <headroom tolerance="10" offset="30" class="noteAction"
           ng-show="note.id && !paragraphUrl">
   <h3>
@@ -24,7 +25,7 @@ limitations under the License.
          tooltip-placement="bottom"
          uib-tooltip={{notePath(note)}}
          ng-click="input.showEditor = !revisionView; input.value = note.path"
-         ng-show="!input.showEditor"><span>{{notePath(note).substring(1, 1000}}</span></p>
+         ng-show="!input.showEditor"><span>{{notePath(note).substring(1, 1000)}}</span></p>
     </div>
     <div style="float: left; padding-bottom: 10px">
       <span class="labelBtn btn-group">
