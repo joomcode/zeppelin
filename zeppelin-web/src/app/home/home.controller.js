@@ -146,6 +146,18 @@ function HomeCtrl($scope, noteListFactory, websocketMsgSrv, $rootScope, arrayOrd
     return false;
   };
 
+  $scope.isFilterNoteComparator = function(note, q) {
+    if (!q) {
+      return true;
+    }
+
+    let noteName = note.path;
+    if (noteName.toLowerCase().indexOf(q.toLowerCase()) > -1) {
+      return true;
+    }
+    return false;
+  }
+
   $scope.getNoteName = function(note) {
     return arrayOrderingSrv.getNoteName(note);
   };

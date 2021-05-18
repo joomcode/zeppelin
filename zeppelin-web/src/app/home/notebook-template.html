@@ -17,7 +17,7 @@ limitations under the License.
   <div ng-if="node.children == null && isFilterNote(node)" class="note-folder-item">
     <a style="text-decoration: none;" href="#/notebook/{{node.id}}">
       <i style="font-size: 10px;"
-         ng-class="query.q && node.isTrash ? 'fa fa-trash-o' : 'icon-doc'"></i> {{getNoteName(node)}}
+         ng-class="query.q && node.isTrash ? 'fa fa-trash-o' : 'icon-doc'"></i> {{getNotePath(node).substring(1, 1000)}}
     </a>
     <span class="note-folder-item-actions">
       <!-- if note is not in trash -->
@@ -56,7 +56,7 @@ limitations under the License.
   <div ng-if="node.children != null && node.id !== TRASH_FOLDER_ID">
     <div class="note-folder-item">
       <a style="text-decoration: none; cursor: pointer;" ng-click="toggleFolderNode(node)">
-        <i style="font-size: 10px;" ng-class="node.hidden ? 'fa fa-folder' : 'fa fa-folder-open'"></i> {{getNoteName(node)}}
+        <i style="font-size: 10px;" ng-class="node.hidden ? 'fa fa-folder' : 'fa fa-folder-open'"></i> {{getNotePath(node)}}
       </a>
       <span class="note-folder-item-actions">
         <a ng-if="!node.isTrash" href="" data-toggle="modal" data-target="#noteCreateModal" style="text-decoration: none;"
