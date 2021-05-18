@@ -160,9 +160,9 @@
 }
 
 .notebook-actionBar-title {
-  float: left;
+  float: none;
   width: auto;
-  max-width: 40%;
+  max-width: 100%;
 }
 
 @media (max-width: 650px) {
