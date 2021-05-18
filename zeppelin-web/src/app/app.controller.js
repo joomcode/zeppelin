@@ -46,7 +46,12 @@ function MainCtrl($scope, $rootScope, $window, arrayOrderingSrv) {
 
   $rootScope.noteName = function(note) {
     if (!_.isEmpty(note)) {
-      return arrayOrderingSrv.getNoteName(note);
+      let name = arrayOrderingSrv.getNoteName(note);
+      if (note.path === undefined || note.path.trim() === '') {
+        return name;
+      } else {
+        return note.path + '/' + name;
+      }
     }
   };
 

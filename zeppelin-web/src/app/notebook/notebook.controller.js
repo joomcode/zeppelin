@@ -540,7 +540,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     const trimmedNewName = newName.trim();
     if (trimmedNewName.length > 0 && $scope.note.name !== trimmedNewName) {
       $scope.note.name = trimmedNewName;
-      websocketMsgSrv.renameNote($scope.note.id, $scope.note.name, true);
+      websocketMsgSrv.renameNote($scope.note.id, $scope.note.name, false);
     }
   };
 
