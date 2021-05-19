@@ -537,15 +537,15 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
 
   /** Update the note name */
   $scope.updateNoteName = function(newPath) {
-    var trimmedNewPath = newPath.trim();
+    let trimmedNewPath = newPath.trim();
     if (trimmedNewPath.length > 0) {
-      if (trimmedNewPath[0] != '/') {
+      if (trimmedNewPath[0] !== '/') {
         trimmedNewPath = '/' + trimmedNewPath;
       }
-      const currentPath = $scope.note.path
+      const currentPath = $scope.note.path;
       if (currentPath !== trimmedNewPath) {
         $scope.note.path = trimmedNewPath;
-        $scope.note.name = trimmedNewPath.match(/.*[/]([^\/]*)/)(1);
+        $scope.note.name = trimmedNewPath.match(/.*[/]([^\/]*)/)[1];
         websocketMsgSrv.renameNote($scope.note.id, trimmedNewPath, false);
       }
     }
