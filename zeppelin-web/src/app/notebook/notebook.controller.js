@@ -536,11 +536,18 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
   };
 
   /** Update the note name */
-  $scope.updateNoteName = function(newName) {
-    const trimmedNewName = newName.trim();
-    if (trimmedNewName.length > 0 && $scope.note.name !== trimmedNewName) {
-      $scope.note.name = trimmedNewName;
-      websocketMsgSrv.renameNote($scope.note.id, $scope.note.name, false);
+  $scope.updateNoteName = function(newPath) {
+    var trimmedNewPath = newPath.trim();
+    if (trimmedNewPath.length > 0) {
+      if (trimmedNewPath[0] != '/') {
+        trimmedNewPath = '/' + trimmedNewPath;
+      }
+      const currentPath = $scope.note.path
+      if (currentPath !== trimmedNewPath) {
+        $scope.note.path = trimmedNewPath;
+        $scope.note.name = trimmedNewPath.match(/.*[/]([^\/]*)/)(1);
+        websocketMsgSrv.renameNote($scope.note.id, trimmedNewPath, false);
+      }
     }
   };
 

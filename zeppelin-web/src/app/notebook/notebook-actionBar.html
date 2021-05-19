@@ -23,7 +23,7 @@ limitations under the License.
          ng-class="{'reverse-ellipsis ellipsis':notePath(note).length > 45}"
          tooltip-placement="bottom"
          uib-tooltip={{notePath(note)}}
-         ng-click="input.showEditor = !revisionView; input.value = note.path"
+         ng-click="input.showEditor = !revisionView; input.value = note.path.substring(1, 1000)"
          ng-show="!input.showEditor"><span>{{notePath(note).substring(1, 1000)}}</span></p>
     </div>
     <div style="float: left; padding-bottom: 10px">

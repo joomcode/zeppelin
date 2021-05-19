@@ -147,6 +147,11 @@ function HomeCtrl($scope, noteListFactory, websocketMsgSrv, $rootScope, arrayOrd
   };
 
   $scope.getNoteName = function(note) {
+    if (!$scope.query.q) {
+      // When searching, we're displaying flat list of notes without hierarchy, so we want
+      // to show the full path.
+      return note.path;
+    }
     return arrayOrderingSrv.getNoteName(note);
   };
 
