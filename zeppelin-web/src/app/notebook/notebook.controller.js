@@ -19,7 +19,7 @@ import {isParagraphRunning} from './paragraph/paragraph.status';
 angular.module('zeppelinWebApp').controller('NotebookCtrl', NotebookCtrl);
 
 function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
-                      $http, websocketMsgSrv, baseUrlSrv, $timeout, saveAsService,
+                      $http, websocketMsgSrv, websocketEvents, baseUrlSrv, $timeout, saveAsService,
                       ngToast, noteActionService, noteVarShareService, TRASH_FOLDER_ID,
                       heliumService) {
   'ngInject';
@@ -69,7 +69,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
   $scope.saveTimer = null;
   $scope.paragraphWarningDialog = {};
 
-  let connected = false;
+  let connected = websocketEvents.isConnected();
   let isRevisionPath = function(path) {
     let pattern = new RegExp('^.*\/notebook\/[a-zA-Z0-9_]*\/revision\/[a-zA-Z0-9_]*');
     return pattern.test(path);
@@ -390,7 +390,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
   };
 
   $scope.checkConnection = function() {
-    if (!$scope.connected) {
+    if (!connected) {
       BootstrapDialog.confirm({
         closable: true,
         title: 'Cannot Run: Not connected to server',
