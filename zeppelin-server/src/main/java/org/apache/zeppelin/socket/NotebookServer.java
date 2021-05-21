@@ -474,7 +474,7 @@ public class NotebookServer extends WebSocketServlet
 
   @Override
   public void onClose(NotebookSocket conn, int code, String reason) {
-    LOG.info("Closed connection to {} ({}) {}", conn, code, reason);
+    LOG.info("Closed connection to {} {} ({}) {}", conn.getUser(), conn, code, reason);
     getConnectionManager().removeConnection(conn);
     getConnectionManager().removeConnectionFromAllNote(conn);
     getConnectionManager().removeUserConnection(conn.getUser(), conn);
