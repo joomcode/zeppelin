@@ -268,6 +268,9 @@ abstract class BaseSparkScalaInterpreter(val conf: SparkConf,
     scalaInterpret("import sqlContext.implicits._")
     scalaInterpret("import sqlContext.sql")
     scalaInterpret("import org.apache.spark.sql.functions._")
+    // Joom local: import common things. Eventually, we want to make this configurable, not hardcoded.
+    scalaInterpret("import com.joom.dataflow2.warehouse.functions._")
+    scalaInterpret("implicit val s = spark")
     // print empty string otherwise the last statement's output of this method
     // (aka. import org.apache.spark.sql.functions._) will mix with the output of user code
     scalaInterpret("print(\"\")")
