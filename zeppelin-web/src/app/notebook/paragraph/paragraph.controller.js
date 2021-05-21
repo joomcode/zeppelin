@@ -456,6 +456,9 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
     if (!paragraphText || $scope.isRunning($scope.paragraph)) {
       return;
     }
+    if (!$scope.$parent.checkConnection()) {
+      return;
+    }
 
     const magic = SpellResult.extractMagic(paragraphText);
 

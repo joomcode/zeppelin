@@ -69,6 +69,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
   $scope.saveTimer = null;
   $scope.paragraphWarningDialog = {};
 
+  let connected = false;
   let connectedOnce = false;
   let isRevisionPath = function(path) {
     let pattern = new RegExp('^.*\/notebook\/[a-zA-Z0-9_]*\/revision\/[a-zA-Z0-9_]*');
@@ -110,6 +111,8 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
       initNotebook();
     }
     connectedOnce = true;
+    connected = param;
+    console.log("Notebook connected = ", connected);
   });
 
   $scope.addEvent = function(config) {
@@ -391,7 +394,22 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
     }
   };
 
+  $scope.checkConnection = function() {
+    if (!$scope.connected) {
+      BootstrapDialog.confirm({
+        closable: true,
+        title: 'Cannot Run: Not connected to server',
+        message: 'You are not connected to the Zeppelin server. Double-check that your VPN is on'
+      });
+      return false;
+    }
+    return true;
+  }
+
   $scope.runAllParagraphs = function(noteId) {
+    if (!$scope.checkConnection()) {
+      return;
+    }
     BootstrapDialog.confirm({
       closable: true,
       title: '',
@@ -1305,6 +1323,9 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
    */
 
   $scope.$on('runAllAbove', function(event, paragraph, isNeedConfirm) {
+    if (!$scope.checkConnection()) {
+      return;
+    }
     let allParagraphs = $scope.note.paragraphs;
     let toRunParagraphs = [];
 
@@ -1354,6 +1375,9 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
 
 
   $scope.$on('runAllBelowAndCurrent', function(event, paragraph, isNeedConfirm) {
+    if (!$scope.checkConnection()) {
+      return;
+    }
     let allParagraphs = $scope.note.paragraphs;
     let toRunParagraphs = [];
 
