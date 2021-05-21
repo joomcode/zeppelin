@@ -107,7 +107,7 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
 
   $scope.$on('setConnectedStatus', function(event, param) {
     connected = param;
-    console.log("Notebook connected = ", connected);
+    console.log('Notebook connected = ', connected);
   });
 
   $scope.addEvent = function(config) {
@@ -394,12 +394,12 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
       BootstrapDialog.confirm({
         closable: true,
         title: 'Cannot Run: Not connected to server',
-        message: 'You are not connected to the Zeppelin server. Double-check that your VPN is on'
+        message: 'You are not connected to the Zeppelin server. Double-check that your VPN is on',
       });
       return false;
     }
     return true;
-  }
+  };
 
   $scope.runAllParagraphs = function(noteId) {
     if (!$scope.checkConnection()) {
