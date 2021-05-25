@@ -70,7 +70,6 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
   $scope.paragraphWarningDialog = {};
 
   let connected = false;
-  let connectedOnce = false;
   let isRevisionPath = function(path) {
     let pattern = new RegExp('^.*\/notebook\/[a-zA-Z0-9_]*\/revision\/[a-zA-Z0-9_]*');
     return pattern.test(path);
@@ -107,10 +106,6 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
   }, true);
 
   $scope.$on('setConnectedStatus', function(event, param) {
-    if (connectedOnce && param) {
-      initNotebook();
-    }
-    connectedOnce = true;
     connected = param;
     console.log("Notebook connected = ", connected);
   });

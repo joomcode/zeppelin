@@ -231,6 +231,7 @@ public class NotebookServer extends WebSocketServlet
   @Override
   public void configure(WebSocketServletFactory factory) {
     factory.setCreator(new NotebookWebSocketCreator(this));
+    factory.getPolicy().setIdleTimeout(5*60*1000);
   }
 
   public boolean checkOrigin(HttpServletRequest request, String origin) {
