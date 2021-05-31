@@ -106,6 +106,10 @@ function NotebookCtrl($scope, $route, $routeParams, $location, $rootScope,
   }, true);
 
   $scope.$on('setConnectedStatus', function(event, param) {
+    if (!connected && param) {
+      // We are reconnected. Register ourselves.
+      websocketMsgSrv.reconnectNote($routeParams.noteId);
+    }
     connected = param;
     console.log('Notebook connected = ', connected);
   });

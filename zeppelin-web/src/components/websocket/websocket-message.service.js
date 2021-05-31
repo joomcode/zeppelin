@@ -81,6 +81,10 @@ function WebsocketMessageService($rootScope, websocketEvents) {
       websocketEvents.sendNewEvent({op: 'GET_NOTE', data: {id: noteId}});
     },
 
+    reconnectNote: function(noteIt) {
+      websocketEvents.sendNewEvent({op: 'RECONNECT_NOTE', data: {id: noteId}});
+    },
+
     reloadNote: function(noteId) {
       websocketEvents.sendNewEvent({op: 'RELOAD_NOTE', data: {id: noteId}});
     },
