@@ -23,7 +23,7 @@
   <parent>
     <artifactId>zeppelin</artifactId>
     <groupId>org.apache.zeppelin</groupId>
-    <version>0.9.0-joom-25</version>
+    <version>0.9.0-joom-27</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
