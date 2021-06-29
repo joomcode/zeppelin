@@ -52,10 +52,15 @@ public class Spark3Shims extends SparkShims {
     sc.addSparkListener(new SparkListener() {
       @Override
       public void onJobStart(SparkListenerJobStart jobStart) {
-
-        if (sc.getConf().getBoolean("spark.ui.enabled", true) &&
-            !Boolean.parseBoolean(properties.getProperty("zeppelin.spark.ui.hidden", "false"))) {
-          buildSparkJobUrl(master, sparkWebUrl, jobStart.jobId(), jobStart.properties(), context);
+        try {
+          if (sc.getConf().getBoolean("spark.ui.enabled", true) &&
+                  !Boolean.parseBoolean(properties.getProperty("zeppelin.spark.ui.hidden", "false"))) {
+            buildSparkJobUrl(master, sparkWebUrl, jobStart.jobId(), jobStart.properties(), context);
+          }
+        } catch (Exception e) {
+          // Joom local: do nothing. Delta creates jobs that don't follow expected Zeppelin job id format.
+          // Since they are small, ignoring them is OK, while letting this throw breaks further progress
+          // reporting.
         }
       }
     });
