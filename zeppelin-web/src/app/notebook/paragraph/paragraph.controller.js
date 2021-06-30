@@ -1477,7 +1477,7 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
           $scope.dirtyText = undefined;
           $scope.originalText = angular.copy(newPara.text);
         } else { // if there're local update, keep it.
-          $scope.paragraph.text = newPara.text;
+          console.log("Keeping local update for a paragraph");
         }
       } else {
         $scope.paragraph.text = newPara.text;
