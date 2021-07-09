@@ -64,9 +64,9 @@ function WebsocketEventFactory($rootScope, $websocket, $location, baseUrlSrv, sa
     let op = payload.op;
     let data = payload.data;
     let msgId = payload.msgId;
-    const uniqueClientId = msgId ? msgId.split('-')[0] : undefined;
+    const msgClientId = msgId ? msgId.split('-')[0] : undefined;
     const msgIdSeqReceived = msgId ? parseInt(msgId.split('-')[1]) : undefined;
-    const isResponseForRequestFromThisClient = uniqueClientId === uniqueClientId;
+    const isResponseForRequestFromThisClient = msgClientId === uniqueClientId;
 
     if (op === 'NOTE') {
       $rootScope.$broadcast('setNoteContent', data.note);
