@@ -254,6 +254,13 @@ public class NotebookServer extends WebSocketServlet
     try {
       Message messagereceived = deserializeMessage(msg);
       if (messagereceived.op != OP.PING) {
+        String text = (String) messagereceived.get("paragraph");
+        if (text == null) {
+          text = "";
+        }
+        LOG.info(String.format(
+                 "op=%s username=%s msgid=%s text=%s",
+                 messagereceived.op, messagereceived.principal, messagereceived.msgId, text));
         LOG.debug("RECEIVE: " + messagereceived.op +
             ", RECEIVE PRINCIPAL: " + messagereceived.principal +
             ", RECEIVE TICKET: " + messagereceived.ticket +
