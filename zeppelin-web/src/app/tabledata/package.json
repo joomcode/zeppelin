@@ -1,7 +1,7 @@
 {
   "name": "zeppelin-tabledata",
   "description": "tabledata api",
-  "version": "0.9.0-joom-29",
+  "version": "0.9.0-joom-30",
   "main": "tabledata",
   "dependencies": {
     "json3": "~3.3.1",
