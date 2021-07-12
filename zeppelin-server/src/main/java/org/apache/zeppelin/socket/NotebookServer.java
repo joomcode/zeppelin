@@ -23,7 +23,9 @@ import com.google.gson.reflect.TypeToken;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -255,15 +257,20 @@ public class NotebookServer extends WebSocketServlet
       Message messagereceived = deserializeMessage(msg);
       if (messagereceived.op != OP.PING) {
         String text = "";
+        String id = "";
         if (messagereceived.data != null) {
           Object raw = messagereceived.get("paragraph");
           if (raw != null) {
-            text = (String)raw;
+            text = URLEncoder.encode((String)raw, StandardCharsets.UTF_8.toString());
+          }
+          Object rawId = messagereceived.get("id");
+          if (rawId != null) {
+            id = (String)rawId;
           }
         }
         LOG.info(String.format(
-                 "op=%s username=%s msgid=%s text=%s",
-                 messagereceived.op, messagereceived.principal, messagereceived.msgId, text));
+                 "op=%s username=%s msgid=%s id=%s text=%s",
+                 messagereceived.op, messagereceived.principal, messagereceived.msgId, id, text));
         LOG.debug("RECEIVE: " + messagereceived.op +
             ", RECEIVE PRINCIPAL: " + messagereceived.principal +
             ", RECEIVE TICKET: " + messagereceived.ticket +
