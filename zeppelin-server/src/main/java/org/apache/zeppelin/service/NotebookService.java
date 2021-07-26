@@ -644,6 +644,7 @@ public class NotebookService {
       p.setTitle(title);
       p.setText(text);
     }
+    note.fireParagraphUpdateEvent(p);
     notebook.saveNote(note, context.getAutheInfo());
     callback.onSuccess(p, context);
   }
