@@ -1308,7 +1308,7 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
     } = paragraph;
 
     return websocketMsgSrv.commitParagraph(id, title, text, config, params,
-      $route.current.pathParams.noteId);
+      $route.current.pathParams.noteId, $scope.originalText);
   };
 
   /** Utility function */

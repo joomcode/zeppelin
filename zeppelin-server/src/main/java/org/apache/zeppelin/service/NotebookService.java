@@ -25,6 +25,8 @@ import static org.apache.zeppelin.scheduler.Job.Status.ABORT;
 
 import com.google.common.base.Strings;
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -616,6 +618,7 @@ public class NotebookService {
                               String text,
                               Map<String, Object> params,
                               Map<String, Object> config,
+                              String originalText,
                               ServiceContext context,
                               ServiceCallback<Paragraph> callback) throws IOException {
     if (!checkPermission(noteId, Permission.WRITER, Message.OP.COMMIT_PARAGRAPH, context,
@@ -631,6 +634,14 @@ public class NotebookService {
     if (p == null) {
       callback.onFailure(new ParagraphNotFoundException(paragraphId), context);
       return;
+    }
+
+    if (originalText != p.getText()) {
+      String encodedText = URLEncoder.encode(text, StandardCharsets.UTF_8.toString());
+      String encodedOriginalText = URLEncoder.encode(originalText, StandardCharsets.UTF_8.toString());
+      String encodedCurrentText = URLEncoder.encode(p.getText(), StandardCharsets.UTF_8.toString());
+      LOGGER.warn(String.format("msg=merge_conflict text=%s originalText=%s currentText=%s",
+              encodedText, encodedOriginalText, encodedCurrentText));
     }
 
     p.settings.setParams(params);

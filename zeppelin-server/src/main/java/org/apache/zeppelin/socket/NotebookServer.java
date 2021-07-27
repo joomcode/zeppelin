@@ -1175,8 +1175,13 @@ public class NotebookServer extends WebSocketServlet
     String text = (String) fromMessage.get("paragraph");
     Map<String, Object> params = (Map<String, Object>) fromMessage.get("params");
     Map<String, Object> config = (Map<String, Object>) fromMessage.get("config");
+    String originalText = "";
+    Object rawOriginalText = fromMessage.get("originalText");
+    if (rawOriginalText != null) {
+      originalText = (String) rawOriginalText;
+    }
 
-    getNotebookService().updateParagraph(noteId, paragraphId, title, text, params, config, context,
+    getNotebookService().updateParagraph(noteId, paragraphId, title, text, params, config, originalText, context,
         new WebSocketServiceCallback<Paragraph>(conn) {
           @Override
           public void onSuccess(Paragraph p, ServiceContext context) throws IOException {

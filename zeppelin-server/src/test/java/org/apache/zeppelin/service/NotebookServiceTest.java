@@ -350,7 +350,7 @@ public class NotebookServiceTest {
     // update paragraph
     reset(callback);
     notebookService.updateParagraph(note1.getId(), p.getId(), "my_title", "my_text",
-        new HashMap<>(), new HashMap<>(), context, callback);
+        new HashMap<>(), new HashMap<>(), "", context, callback);
     assertEquals("my_title", p.getTitle());
     assertEquals("my_text", p.getText());
 

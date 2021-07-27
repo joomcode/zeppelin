@@ -257,7 +257,7 @@ function WebsocketMessageService($rootScope, websocketEvents) {
       });
     },
 
-    commitParagraph: function(paragraphId, paragraphTitle, paragraphData, paragraphConfig, paragraphParams, noteId) {
+    commitParagraph: function(paragraphId, paragraphTitle, paragraphData, paragraphConfig, paragraphParams, noteId, originalText) {
       return websocketEvents.sendNewEvent({
         op: 'COMMIT_PARAGRAPH',
         data: {
@@ -267,6 +267,7 @@ function WebsocketMessageService($rootScope, websocketEvents) {
           paragraph: paragraphData,
           config: paragraphConfig,
           params: paragraphParams,
+          originalText: originalText
         },
       });
     },
