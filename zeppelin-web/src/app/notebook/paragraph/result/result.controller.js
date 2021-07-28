@@ -772,7 +772,13 @@ function ResultCtrl($scope, $rootScope, $route, $window, $routeParams, $location
 
     if ($scope.revisionView !== true) {
       if (! $scope.viewOnly) {
-        return websocketMsgSrv.commitParagraph(paragraph.id, title, text, newParagraphConfig, params);
+        // When committing paragraph, we need to provide original text so that server can
+        // confirm we're not using outdated data and overwriting everything. The below is
+        // quite ugly way to get it. It is unfortunately that paragraph text and results are
+        // fused together in a way that requires that we commit text when all we need to change
+        // results rendering params, but that's the way Zeppelin works now.
+        let originalText = $scope.$parent.$parent.$parent.originalText;
+        return websocketMsgSrv.commitParagraph(paragraph.id, title, text, newParagraphConfig, params, originalText);
       }
     }
   };

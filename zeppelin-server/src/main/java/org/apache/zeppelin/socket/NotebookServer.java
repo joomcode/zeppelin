@@ -1609,10 +1609,11 @@ public class NotebookServer extends WebSocketServlet
     String noteId = getConnectionManager().getAssociatedNoteId(conn);
     String text = (String) fromMessage.get("paragraph");
     String title = (String) fromMessage.get("title");
+    String originalText = (String) fromMessage.get("originalText");
     Map<String, Object> params = (Map<String, Object>) fromMessage.get("params");
     Map<String, Object> config = (Map<String, Object>) fromMessage.get("config");
     getNotebookService().runParagraph(noteId, paragraphId, title, text, params, config, null,
-        false, false, context,
+        false, false, originalText, context,
         new WebSocketServiceCallback<Paragraph>(conn) {
           @Override
           public void onSuccess(Paragraph p, ServiceContext context) throws IOException {

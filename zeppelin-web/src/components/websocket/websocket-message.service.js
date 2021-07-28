@@ -195,7 +195,8 @@ function WebsocketMessageService($rootScope, websocketEvents) {
       });
     },
 
-    runParagraph: function(paragraphId, paragraphTitle, paragraphData, paragraphConfig, paragraphParams) {
+    runParagraph: function(paragraphId, paragraphTitle, paragraphData, paragraphConfig, paragraphParams,
+                           originalText) {
       // short circuit update paragraph status for immediate visual feedback without waiting for server response
       $rootScope.$broadcast('updateStatus', {
         id: paragraphId,
@@ -211,6 +212,7 @@ function WebsocketMessageService($rootScope, websocketEvents) {
           paragraph: paragraphData,
           config: paragraphConfig,
           params: paragraphParams,
+          originalText: originalText,
         },
       });
     },

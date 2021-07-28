@@ -25,6 +25,7 @@ import static org.apache.zeppelin.scheduler.Job.Status.ABORT;
 
 import com.google.common.base.Strings;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
@@ -328,6 +329,7 @@ public class NotebookService {
                               String sessionId,
                               boolean failIfDisabled,
                               boolean blocking,
+                              String originalText,
                               ServiceContext context,
                               ServiceCallback<Paragraph> callback) throws IOException {
 
@@ -350,6 +352,9 @@ public class NotebookService {
       callback.onFailure(new IOException("paragraph is disabled."), context);
       return false;
     }
+
+    checkMergeConflict(text, originalText, p);
+
     p.setText(text);
     p.setTitle(title);
     p.setAuthenticationInfo(context.getAutheInfo());
@@ -431,8 +436,9 @@ public class NotebookService {
             Map<String, Object> params = (Map<String, Object>) raw.get("params");
             Map<String, Object> config = (Map<String, Object>) raw.get("config");
 
+            // TODO: eventually, should pass originalText here as well.
             if (!runParagraph(noteId, paragraphId, title, text, params, config, null, false, true,
-                    context, callback)) {
+                    text, context, callback)) {
               // stop execution when one paragraph fails.
               return false;
             }
@@ -636,14 +642,7 @@ public class NotebookService {
       return;
     }
 
-    if (!originalText.equals(p.getText())) {
-      String encodedText = URLEncoder.encode(text, StandardCharsets.UTF_8.toString());
-      String encodedOriginalText = URLEncoder.encode(originalText, StandardCharsets.UTF_8.toString());
-      String encodedCurrentText = URLEncoder.encode(p.getText(), StandardCharsets.UTF_8.toString());
-      LOGGER.warn(String.format("msg=merge_conflict note=%s paragraph=%s text=%s originalText=%s currentText=%s",
-              noteId, paragraphId,
-              encodedText, encodedOriginalText, encodedCurrentText));
-    }
+    checkMergeConflict(text, originalText, p);
 
     p.settings.setParams(params);
     p.mergeConfig(config);
@@ -659,6 +658,17 @@ public class NotebookService {
     note.fireParagraphUpdateEvent(p);
     notebook.saveNote(note, context.getAutheInfo());
     callback.onSuccess(p, context);
+  }
+
+  private void checkMergeConflict(String text, String originalText, Paragraph p) throws UnsupportedEncodingException {
+    if (!text.equals(p.getText()) && !originalText.equals(p.getText())) {
+      String encodedText = URLEncoder.encode(text, StandardCharsets.UTF_8.toString());
+      String encodedOriginalText = URLEncoder.encode(originalText, StandardCharsets.UTF_8.toString());
+      String encodedCurrentText = URLEncoder.encode(p.getText(), StandardCharsets.UTF_8.toString());
+      LOGGER.warn(String.format("msg=merge_conflict note=%s paragraph=%s text=%s originalText=%s currentText=%s",
+              p.getNote().getId(), p.getId(),
+              encodedText, encodedOriginalText, encodedCurrentText));
+    }
   }
 
   public Paragraph getNextSessionParagraph(String noteId,
