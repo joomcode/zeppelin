@@ -433,8 +433,7 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
     $scope.bindBeforeUnload();
 
     commitParagraph(paragraph).then(function() {
-      $scope.originalText = dirtyText;
-      $scope.dirtyText = undefined;
+    commitParagraph(paragraph).then(function() {
       $scope.unBindBeforeUnload();
     });
   };
@@ -467,9 +466,6 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
     } else {
       $scope.runParagraphUsingBackendInterpreter(paragraphText);
     }
-
-    $scope.originalText = angular.copy(paragraphText);
-    $scope.dirtyText = undefined;
 
     if ($scope.paragraph.config.editorSetting.editOnDblClick) {
       closeEditorAndOpenTable($scope.paragraph);
@@ -729,10 +725,9 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
   $scope.aceChanged = function(_, editor) {
     let session = editor.getSession();
     let dirtyText = session.getValue();
-    $scope.dirtyText = dirtyText;
-    if ($scope.dirtyText !== $scope.originalText) {
+    if (dirtyText !== $scope.originalText) {
       if ($scope.collaborativeMode) {
-        $scope.sendPatch();
+        $scope.sendPatch(dirtyText);
       } else {
         $scope.startSaveTimer();
       }
@@ -744,10 +739,10 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
     }
   };
 
-  $scope.sendPatch = function() {
+  $scope.sendPatch = function(dirtyText) {
     $scope.originalText = $scope.originalText ? $scope.originalText : '';
-    let patch = $scope.diffMatchPatch.patch_make($scope.originalText, $scope.dirtyText).toString();
-    $scope.originalText = $scope.dirtyText;
+    let patch = $scope.diffMatchPatch.patch_make($scope.originalText, dirtyText).toString();
+    $scope.originalText = dirtyText;
     return websocketMsgSrv.patchParagraph($scope.paragraph.id, $route.current.pathParams.noteId, patch);
   };
 
@@ -1470,20 +1465,24 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
   }
 
   $scope.updateAllScopeTexts = function(oldPara, newPara) {
-    if (oldPara.text !== newPara.text) {
-      if ($scope.dirtyText) {         // check if editor has local update
-        if ($scope.dirtyText === newPara.text) {  // when local update is the same from remote, clear local update
-          $scope.paragraph.text = newPara.text;
-          $scope.dirtyText = undefined;
-          $scope.originalText = angular.copy(newPara.text);
-        } else { // if there're local update, keep it.
-          console.log('Keeping local update for a paragraph');
-        }
-      } else {
-        $scope.paragraph.text = newPara.text;
-        $scope.originalText = angular.copy(newPara.text);
-      }
+    if (newPara.text === oldPara.text) {
+      // New text is equal to what we already have.
+      return;
     }
+
+    if (newPara.text === $scope.originalText) {
+      // New text is different from our current text. But, it's actually equal
+      // to the text we've last received from server. In this case, keep our local
+      // edits.
+      return;
+    }
+
+    // Here, we have server update that is different from our local text and different
+    // from last update we've received. It follows that somebody else, or ourselves in
+    // another tab, has updated the paragraph. For now, just let the server win.
+    // In future, we'll keep local edit in a separate UI element.
+    $scope.paragraph.text = newPara.text;
+    $scope.originalText = angular.copy(newPara.text);
   };
 
   $scope.updateParagraphObjectWhenUpdated = function(newPara) {
