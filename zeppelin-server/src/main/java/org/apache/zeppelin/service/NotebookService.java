@@ -640,7 +640,8 @@ public class NotebookService {
       String encodedText = URLEncoder.encode(text, StandardCharsets.UTF_8.toString());
       String encodedOriginalText = URLEncoder.encode(originalText, StandardCharsets.UTF_8.toString());
       String encodedCurrentText = URLEncoder.encode(p.getText(), StandardCharsets.UTF_8.toString());
-      LOGGER.warn(String.format("msg=merge_conflict text=%s originalText=%s currentText=%s",
+      LOGGER.warn(String.format("msg=merge_conflict note=%s paragraph=%s text=%s originalText=%s currentText=%s",
+              noteId, paragraphId,
               encodedText, encodedOriginalText, encodedCurrentText));
     }
 
