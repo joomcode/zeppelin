@@ -636,7 +636,7 @@ public class NotebookService {
       return;
     }
 
-    if (originalText != p.getText()) {
+    if (!originalText.equals(p.getText())) {
       String encodedText = URLEncoder.encode(text, StandardCharsets.UTF_8.toString());
       String encodedOriginalText = URLEncoder.encode(originalText, StandardCharsets.UTF_8.toString());
       String encodedCurrentText = URLEncoder.encode(p.getText(), StandardCharsets.UTF_8.toString());
