@@ -433,7 +433,6 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
     $scope.bindBeforeUnload();
 
     commitParagraph(paragraph).then(function() {
-    commitParagraph(paragraph).then(function() {
       $scope.unBindBeforeUnload();
     });
   };
