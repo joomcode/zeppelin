@@ -1465,14 +1465,18 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
 
   $scope.updateAllScopeTexts = function(oldPara, newPara) {
     if (newPara.text === oldPara.text) {
-      // New text is equal to what we already have.
+      // New text is equal to what we already have. Common cases
+      // - we've received paragraph process or result update, text did not change
+      // - we've committed the paragraph and got back committed version with out text
+      // Update the originalText, which is especially important in the second case
+      $scope.originalText = angular.copy(newPara.text);
       return;
     }
 
     if (newPara.text === $scope.originalText) {
       // New text is different from our current text. But, it's actually equal
       // to the text we've last received from server. In this case, keep our local
-      // edits.
+      // edits. This might happen if we reconnected and receive all the updates.
       return;
     }
 
