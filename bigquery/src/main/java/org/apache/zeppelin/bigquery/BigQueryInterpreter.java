@@ -82,7 +82,10 @@ public class BigQueryInterpreter extends Interpreter {
             synchronized (serviceLock) {
                 if (service == null) {
                     try {
-                        service = BigQueryOptions.getDefaultInstance().getService();
+                        String projectId = getProperty(PROJECT_ID);
+                        service = BigQueryOptions.newBuilder()
+                                .setProjectId(projectId)
+                                .build().getService();
                         exceptionOnConnect = null;
                         logger.info("Opened BigQuery SQL Connection");
                     } catch (BigQueryException e) {
@@ -98,7 +101,6 @@ public class BigQueryInterpreter extends Interpreter {
     //Function to call bigQuery to run SQL and return results to the Interpreter for output
     private InterpreterResult executeSql(String sql) throws InterruptedException {
         final StringBuilder finalmessage = new StringBuilder("%table ");
-        String projId = getProperty(PROJECT_ID);
         long wTime = Long.parseLong(getProperty(WAIT_TIME));
         long maxRows = Long.parseLong(getProperty(MAX_ROWS));
         String sqlDialect = getProperty(SQL_DIALECT, "").toLowerCase();
