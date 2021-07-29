@@ -1,7 +1,7 @@
 {
   "name": "zeppelin-spell",
   "description": "Zeppelin Spell Framework",
-  "version": "0.9.0-joom-38",
+  "version": "0.9.0-joom-39",
   "main": "index",
   "dependencies": {
   },
