@@ -660,11 +660,22 @@ public class NotebookService {
     callback.onSuccess(p, context);
   }
 
-  private void checkMergeConflict(String text, String originalText, Paragraph p) throws UnsupportedEncodingException {
-    if (!text.equals(p.getText()) && !originalText.equals(p.getText())) {
+  private String nullSafe(String s) {
+    if (s == null) {
+      return "";
+    } else {
+      return s;
+    }
+  }
+
+  private void checkMergeConflict(String textOpt, String originalTextOpt, Paragraph p) throws UnsupportedEncodingException {
+    String text = nullSafe(textOpt);
+    String originalText = nullSafe(originalTextOpt);
+    String currentText = nullSafe(p.getText());
+    if (!text.equals(currentText) && !originalText.equals(currentText)) {
       String encodedText = URLEncoder.encode(text, StandardCharsets.UTF_8.toString());
       String encodedOriginalText = URLEncoder.encode(originalText, StandardCharsets.UTF_8.toString());
-      String encodedCurrentText = URLEncoder.encode(p.getText(), StandardCharsets.UTF_8.toString());
+      String encodedCurrentText = URLEncoder.encode(currentText, StandardCharsets.UTF_8.toString());
       LOGGER.warn(String.format("msg=merge_conflict note=%s paragraph=%s text=%s originalText=%s currentText=%s",
               p.getNote().getId(), p.getId(),
               encodedText, encodedOriginalText, encodedCurrentText));
