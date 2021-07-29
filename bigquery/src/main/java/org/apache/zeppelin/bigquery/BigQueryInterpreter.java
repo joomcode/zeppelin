@@ -132,9 +132,14 @@ public class BigQueryInterpreter extends Interpreter {
                         x -> x.getName()).collect(Collectors.toList())));
         finalmessage.append(NEWLINE);
         result.iterateAll().forEach(row -> {
-            finalmessage.append(Joiner.on(TAB).join(
-                    row.stream().map(x -> x.getValue().toString()).collect(Collectors.toList())
-            ));
+            List<String> values = row.stream().map(x -> {
+                if (x.isNull()) {
+                    return "null";
+                } else {
+                    return x.getValue().toString();
+                }
+            }).collect(Collectors.toList());
+            finalmessage.append(Joiner.on(TAB).join(values));
             finalmessage.append(NEWLINE);
         });
 
