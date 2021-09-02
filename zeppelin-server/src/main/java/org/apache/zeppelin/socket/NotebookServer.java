@@ -281,19 +281,32 @@ public class NotebookServer extends WebSocketServlet
         LOG.trace("RECEIVE MSG = " + messagereceived);
       }
 
+      // Retrieve the ticket associated with the princial. This association is established during first REST
+      // request, often /security/ticket response. If the server was restarted, the association is empty,
+      // while existing clients will try to reestablish Websocket connections, and in that case ticket
+      // will be null.
       TicketContainer.Entry ticketEntry = TicketContainer.instance.getTicketEntry(messagereceived.principal);
-      // ticketEntry can be null here if we use header-based auth. Then, we can have WS
-      // connection without going through any auth route, and so without creating
-      // ticket entry.
-      // One approach is to replicate what SecurityRestApi.token does here, but it's
-      // a bit tricky, so just handle it similarly to wrong-token case
-      if (ticketEntry == null
-         || messagereceived.ticket == null
-         || !ticketEntry.getTicket().equals(messagereceived.ticket)) {
+      if (ticketEntry == null) {
+        LOG.info(String.format("username=%s found no auth ticket on the server side", messagereceived.principal));
+        conn.send(serializeMessage(new Message(OP.SESSION_LOGOUT).put("info",
+                "Your ticket is invalid possibly due to server restart. "
+                        + "Please login again.")));
+        return;
+      }
+      if (messagereceived.ticket == null) {
+        LOG.info(String.format("username=%s found no auth ticket in the message", messagereceived.principal));
+        conn.send(serializeMessage(new Message(OP.SESSION_LOGOUT).put("info",
+                "Your ticket is invalid possibly due to server restart. "
+                        + "Please login again.")));
+        return;
+      }
+
+      if (!ticketEntry.getTicket().equals(messagereceived.ticket)) {
+        LOG.info(String.format("username=%s clientToken=%s serverToken=%s auth tokens mismatch", messagereceived.principal));
         /* not to pollute logs, log instead of exception */
-          conn.send(serializeMessage(new Message(OP.SESSION_LOGOUT).put("info",
-                    "Your ticket is invalid possibly due to server restart. "
-                          + "Please login again.")));
+        conn.send(serializeMessage(new Message(OP.SESSION_LOGOUT).put("info",
+                "Your ticket is invalid possibly due to server restart. "
+                        + "Please login again.")));
         return;
       }
 
