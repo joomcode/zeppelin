@@ -60,18 +60,19 @@ function LoginCtrl($scope, $rootScope, $http, $httpParamSerializer, baseUrlSrv, 
     };
   };
 
+  $scope.loginStyle = function() {
+    if (!$rootScope.ticket) {
+      return {display: "block"};
+    } else {
+      return {display: "none"};
+    }
+  };
+
   // handle session logout message received from WebSocket
   $rootScope.$on('session_logout', function(event, data) {
     if ($rootScope.userName !== '') {
       $rootScope.userName = '';
       $rootScope.ticket = undefined;
-
-      setTimeout(function() {
-        $scope.loginParams = {};
-        $scope.loginParams.errorText = data.info;
-        angular.element('.nav-login-btn').click();
-      }, 1000);
-      // Joom local: do not redirect to /, as reload will usually work.
     }
   });
 
