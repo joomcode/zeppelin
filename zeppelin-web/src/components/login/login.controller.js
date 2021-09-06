@@ -62,7 +62,7 @@ function LoginCtrl($scope, $rootScope, $http, $httpParamSerializer, baseUrlSrv, 
 
   $scope.loginStyle = function() {
     if (!$rootScope.ticket) {
-      return {display: 'block'};
+      return {display: 'block', backgroundColor: '#212121d0'};
     } else {
       return {display: 'none'};
     }
