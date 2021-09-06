@@ -1200,7 +1200,6 @@ public class NotebookServer extends WebSocketServlet
     }
 
     getNotebookService().updateParagraph(noteId, paragraphId, title, text, params, config,
-    getNotebookService().updateParagraph(noteId, paragraphId, title, text, params, config,
             originalText, previousText, context,
         new WebSocketServiceCallback<Paragraph>(conn) {
           @Override
