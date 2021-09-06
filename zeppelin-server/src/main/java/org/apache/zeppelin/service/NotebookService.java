@@ -439,7 +439,7 @@ public class NotebookService {
 
             // TODO: eventually, should pass originalText here as well.
             if (!runParagraph(noteId, paragraphId, title, text, params, config, null, false, true,
-                    text, context, callback)) {
+                              text, text, context, callback)) {
               // stop execution when one paragraph fails.
               return false;
             }
