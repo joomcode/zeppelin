@@ -366,7 +366,7 @@ public class NotebookServiceTest {
     p.getConfig().put("title", true);
     boolean runStatus = notebookService.runParagraph(note1.getId(), p.getId(), "my_title", "1+1",
         new HashMap<>(), new HashMap<>(), null, false, false,
-        "1+1", context, callback);
+        "1+1", "1+1", context, callback);
     assertTrue(runStatus);
     verify(callback).onSuccess(p, context);
     assertEquals(2, p.getConfig().size());
@@ -375,7 +375,7 @@ public class NotebookServiceTest {
     reset(callback);
     runStatus = notebookService.runParagraph(note1.getId(), p.getId(), "my_title", "1+1",
         new HashMap<>(), new HashMap<>(), null, false, true,
-        "1+1", context, callback);
+        "1+1", "1+1", context, callback);
     assertTrue(runStatus);
     verify(callback).onSuccess(p, context);
     assertEquals(2, p.getConfig().size());
@@ -390,7 +390,7 @@ public class NotebookServiceTest {
     reset(callback);
     runStatus = notebookService.runParagraph(note1.getId(), p.getId(), "my_title", "invalid_code",
         new HashMap<>(), new HashMap<>(), null, false, true,
-            "invalid_code", context, callback);
+            "invalid_code", "invalid_code", context, callback);
     assertTrue(runStatus);
     // TODO(zjffdu) Enable it after ZEPPELIN-3699
     // assertNotNull(p.getResult());
