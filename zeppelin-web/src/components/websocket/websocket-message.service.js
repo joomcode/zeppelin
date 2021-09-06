@@ -196,7 +196,7 @@ function WebsocketMessageService($rootScope, websocketEvents) {
     },
 
     runParagraph: function(paragraphId, paragraphTitle, paragraphData, paragraphConfig, paragraphParams,
-                           originalText) {
+                           originalText, previousText) {
       // short circuit update paragraph status for immediate visual feedback without waiting for server response
       $rootScope.$broadcast('updateStatus', {
         id: paragraphId,
@@ -213,6 +213,7 @@ function WebsocketMessageService($rootScope, websocketEvents) {
           config: paragraphConfig,
           params: paragraphParams,
           originalText: originalText,
+          previousText: previousText,
         },
       });
     },
@@ -260,7 +261,7 @@ function WebsocketMessageService($rootScope, websocketEvents) {
     },
 
     commitParagraph: function(paragraphId, paragraphTitle, paragraphData, paragraphConfig, paragraphParams, noteId,
-                              originalText) {
+                              originalText, previousText) {
       return websocketEvents.sendNewEvent({
         op: 'COMMIT_PARAGRAPH',
         data: {
@@ -271,6 +272,7 @@ function WebsocketMessageService($rootScope, websocketEvents) {
           config: paragraphConfig,
           params: paragraphParams,
           originalText: originalText,
+          previousOriginalText: previousText,
         },
       });
     },

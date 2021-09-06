@@ -330,6 +330,7 @@ public class NotebookService {
                               boolean failIfDisabled,
                               boolean blocking,
                               String originalText,
+                              String previousText,
                               ServiceContext context,
                               ServiceCallback<Paragraph> callback) throws IOException {
 
@@ -353,7 +354,7 @@ public class NotebookService {
       return false;
     }
 
-    checkMergeConflict(text, originalText, p);
+    checkMergeConflict(text, originalText, previousText, p);
 
     p.setText(text);
     p.setTitle(title);
@@ -625,6 +626,7 @@ public class NotebookService {
                               Map<String, Object> params,
                               Map<String, Object> config,
                               String originalText,
+                              String previousText,
                               ServiceContext context,
                               ServiceCallback<Paragraph> callback) throws IOException {
     if (!checkPermission(noteId, Permission.WRITER, Message.OP.COMMIT_PARAGRAPH, context,
@@ -642,7 +644,7 @@ public class NotebookService {
       return;
     }
 
-    checkMergeConflict(text, originalText, p);
+    checkMergeConflict(text, originalText, previousText, p);
 
     p.settings.setParams(params);
     p.mergeConfig(config);
@@ -668,17 +670,19 @@ public class NotebookService {
     }
   }
 
-  private void checkMergeConflict(String textOpt, String originalTextOpt, Paragraph p) throws UnsupportedEncodingException {
+  private void checkMergeConflict(String textOpt, String originalTextOpt, String previousTextOpt, Paragraph p) throws UnsupportedEncodingException {
     String text = nullSafe(textOpt);
     String originalText = nullSafe(originalTextOpt);
+    String previousText = nullSafe(previousTextOpt);
     String currentText = nullSafe(p.getText());
-    if (!text.equals(currentText) && !originalText.equals(currentText)) {
+    if (!text.equals(currentText) && !originalText.equals(currentText) && !previousText.equals(currentText)) {
       String encodedText = URLEncoder.encode(text, StandardCharsets.UTF_8.toString());
       String encodedOriginalText = URLEncoder.encode(originalText, StandardCharsets.UTF_8.toString());
       String encodedCurrentText = URLEncoder.encode(currentText, StandardCharsets.UTF_8.toString());
-      LOGGER.warn(String.format("msg=merge_conflict note=%s paragraph=%s text=%s originalText=%s currentText=%s",
+      String encodedPreviousText = URLEncoder.encode(previousText, StandardCharsets.UTF_8.toString());
+      LOGGER.warn(String.format("msg=merge_conflict note=%s paragraph=%s text=%s originalText=%s currentText=%s previousText=%s",
               p.getNote().getId(), p.getId(),
-              encodedText, encodedOriginalText, encodedCurrentText));
+              encodedText, encodedOriginalText, encodedCurrentText, previousText));
     }
   }
 

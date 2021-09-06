@@ -1193,8 +1193,15 @@ public class NotebookServer extends WebSocketServlet
     if (rawOriginalText != null) {
       originalText = (String) rawOriginalText;
     }
+    String previousText = "";
+    Object rawPreviousText = fromMessage.get("previousText");
+    if (rawPreviousText != null) {
+      previousText = (String) rawPreviousText;
+    }
 
-    getNotebookService().updateParagraph(noteId, paragraphId, title, text, params, config, originalText, context,
+    getNotebookService().updateParagraph(noteId, paragraphId, title, text, params, config,
+    getNotebookService().updateParagraph(noteId, paragraphId, title, text, params, config,
+            originalText, previousText, context,
         new WebSocketServiceCallback<Paragraph>(conn) {
           @Override
           public void onSuccess(Paragraph p, ServiceContext context) throws IOException {
@@ -1623,10 +1630,11 @@ public class NotebookServer extends WebSocketServlet
     String text = (String) fromMessage.get("paragraph");
     String title = (String) fromMessage.get("title");
     String originalText = (String) fromMessage.get("originalText");
+    String previousText = (String) fromMessage.get("previousText");
     Map<String, Object> params = (Map<String, Object>) fromMessage.get("params");
     Map<String, Object> config = (Map<String, Object>) fromMessage.get("config");
     getNotebookService().runParagraph(noteId, paragraphId, title, text, params, config, null,
-        false, false, originalText, context,
+        false, false, originalText, previousText, context,
         new WebSocketServiceCallback<Paragraph>(conn) {
           @Override
           public void onSuccess(Paragraph p, ServiceContext context) throws IOException {

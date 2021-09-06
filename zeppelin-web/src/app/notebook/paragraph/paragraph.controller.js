@@ -42,6 +42,7 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
   $scope.paragraph.results = {};
   $scope.paragraph.results.msg = [];
   $scope.originalText = '';
+  $scope.previousText = '';
   $scope.editor = null;
   $scope.cursorPosition = null;
   $scope.diffMatchPatch = new DiffMatchPatch();
@@ -400,7 +401,8 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
   $scope.runParagraphUsingBackendInterpreter = function(paragraphText) {
     websocketMsgSrv.runParagraph($scope.paragraph.id, $scope.paragraph.title,
       paragraphText, $scope.paragraph.config, $scope.paragraph.settings.params,
-      $scope.originalText);
+      $scope.originalText, $scope.previousText);
+    $scope.previousText = paragraphText;
   };
 
   $scope.bindBeforeUnload = function() {
@@ -1302,8 +1304,10 @@ function ParagraphCtrl($scope, $rootScope, $route, $window, $routeParams, $locat
       settings: {params},
     } = paragraph;
 
-    return websocketMsgSrv.commitParagraph(id, title, text, config, params,
-      $route.current.pathParams.noteId, $scope.originalText);
+    const r = websocketMsgSrv.commitParagraph(id, title, text, config, params,
+      $route.current.pathParams.noteId, $scope.originalText, $scope.previousText);
+    $scope.previousText = text;
+    return r;
   };
 
   /** Utility function */
