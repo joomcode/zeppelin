@@ -778,7 +778,7 @@ function ResultCtrl($scope, $rootScope, $route, $window, $routeParams, $location
         // fused together in a way that requires that we commit text when all we need to change
         // results rendering params, but that's the way Zeppelin works now.
         let originalText = $scope.$parent.$parent.$parent.originalText;
-        return websocketMsgSrv.commitParagraph(paragraph.id, title, text, newParagraphConfig, params, originalText);
+        return websocketMsgSrv.commitParagraph(paragraph.id, title, text, newParagraphConfig, params, originalText, originalText);
       }
     }
   };

@@ -272,7 +272,7 @@ function WebsocketMessageService($rootScope, websocketEvents) {
           config: paragraphConfig,
           params: paragraphParams,
           originalText: originalText,
-          previousOriginalText: previousText,
+          previousText: previousText,
         },
       });
     },
