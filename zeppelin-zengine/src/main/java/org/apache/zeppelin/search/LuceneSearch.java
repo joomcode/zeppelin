@@ -31,7 +31,7 @@ import javax.inject.Inject;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.core.StopAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LongField;
@@ -98,7 +98,7 @@ public class LuceneSearch extends SearchService {
     } else {
       this.indexDirectory = new RAMDirectory();
     }
-    this.analyzer = new StandardAnalyzer();
+    this.analyzer = new StopAnalyzer();
     this.indexWriterConfig = new IndexWriterConfig(analyzer);
     try {
       this.indexWriter = new IndexWriter(indexDirectory, indexWriterConfig);
@@ -119,7 +119,7 @@ public class LuceneSearch extends SearchService {
     List<Map<String, String>> result = Collections.emptyList();
     try (IndexReader indexReader = DirectoryReader.open(indexDirectory)) {
       IndexSearcher indexSearcher = new IndexSearcher(indexReader);
-      Analyzer analyzer = new StandardAnalyzer();
+      Analyzer analyzer = new StopAnalyzer();
       MultiFieldQueryParser parser =
           new MultiFieldQueryParser(new String[] {SEARCH_FIELD_TEXT, SEARCH_FIELD_TITLE}, analyzer);
 
