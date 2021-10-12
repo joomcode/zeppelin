@@ -20,18 +20,21 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import java.io.IOException;
+import java.io.Reader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Stream;
 import javax.inject.Inject;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.core.LetterTokenizer;
+import org.apache.lucene.analysis.core.LowerCaseTokenizer;
 import org.apache.lucene.analysis.core.StopAnalyzer;
+import org.apache.lucene.analysis.core.StopFilter;
+import org.apache.lucene.analysis.util.CharArraySet;
+import org.apache.lucene.analysis.util.StopwordAnalyzerBase;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LongField;
@@ -57,6 +60,7 @@ import org.apache.lucene.search.highlight.TokenSources;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.RAMDirectory;
+import org.apache.lucene.util.AttributeFactory;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.notebook.Note;
 import org.apache.zeppelin.notebook.Paragraph;
@@ -82,6 +86,35 @@ public class LuceneSearch extends SearchService {
   private IndexWriterConfig indexWriterConfig;
   private IndexWriter indexWriter;
 
+  private static class Tokenizer extends LetterTokenizer {
+    protected int normalize(int c) {
+      return Character.toLowerCase(c);
+    }
+    protected boolean isTokenChar(int c) {
+      return Character.isLetter(c) || c == '_';
+    }
+  };
+
+  /* Custome analyzer more suitable for code:
+     - StandardAnalyzer thinks that package.function is an URL, and therefore
+       the 'function' part of it is not searchabled
+     - StopAnalyzer stops on all non-letters, so function_with_underscores becomes
+       three tokens.
+     This one attempts at better behaviour - we think that underscore is a letter.
+     We'll stop on digits - because implementing "digit, but not at the start of the token"
+     logic is harder.
+   */
+  private static class Analyzer extends StopwordAnalyzerBase {
+    public Analyzer() {
+      super(StopAnalyzer.ENGLISH_STOP_WORDS_SET);
+    }
+
+    protected TokenStreamComponents createComponents(String fieldName) {
+      Tokenizer source = new Tokenizer();
+      return new TokenStreamComponents(source, new StopFilter(source, this.stopwords));
+    }
+  };
+
   @Inject
   public LuceneSearch(ZeppelinConfiguration conf) {
     super("LuceneSearch-Thread");
@@ -98,7 +131,7 @@ public class LuceneSearch extends SearchService {
     } else {
       this.indexDirectory = new RAMDirectory();
     }
-    this.analyzer = new StopAnalyzer();
+    this.analyzer = new Analyzer();
     this.indexWriterConfig = new IndexWriterConfig(analyzer);
     try {
       this.indexWriter = new IndexWriter(indexDirectory, indexWriterConfig);
@@ -119,7 +152,7 @@ public class LuceneSearch extends SearchService {
     List<Map<String, String>> result = Collections.emptyList();
     try (IndexReader indexReader = DirectoryReader.open(indexDirectory)) {
       IndexSearcher indexSearcher = new IndexSearcher(indexReader);
-      Analyzer analyzer = new StopAnalyzer();
+      Analyzer analyzer = new Analyzer();
       MultiFieldQueryParser parser =
           new MultiFieldQueryParser(new String[] {SEARCH_FIELD_TEXT, SEARCH_FIELD_TITLE}, analyzer);
 
