@@ -34,7 +34,7 @@
     <description>NotebookRepo implementation based on Google Cloud Storage</description>
 
     <properties>
-        <gcs.storage.version>1.118.0</gcs.storage.version>
+        <gcs.storage.version>2.1.9</gcs.storage.version>
         <google.testing.nio.version>0.32.0-alpha</google.testing.nio.version>
         <google.truth.version>0.27</google.truth.version>
         <plugin.name>NotebookRepo/GCSNotebookRepo</plugin.name>
@@ -127,7 +127,7 @@
         <dependency>
             <groupId>com.google.http-client</groupId>
             <artifactId>google-http-client-jackson2</artifactId>
-            <version>1.23.0</version>
+            <version>1.40.1</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.google.code.findbugs</groupId>
