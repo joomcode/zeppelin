@@ -28,18 +28,13 @@ import java.util.stream.Stream;
 import javax.inject.Inject;
 
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.StopwordAnalyzerBase;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.LetterTokenizer;
-import org.apache.lucene.analysis.core.LowerCaseTokenizer;
 import org.apache.lucene.analysis.core.StopAnalyzer;
 import org.apache.lucene.analysis.core.StopFilter;
-import org.apache.lucene.analysis.util.CharArraySet;
-import org.apache.lucene.analysis.util.StopwordAnalyzerBase;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.LongField;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.document.TextField;
+import org.apache.lucene.analysis.en.EnglishAnalyzer;
+import org.apache.lucene.document.*;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
@@ -106,7 +101,7 @@ public class LuceneSearch extends SearchService {
    */
   private static class Analyzer extends StopwordAnalyzerBase {
     public Analyzer() {
-      super(StopAnalyzer.ENGLISH_STOP_WORDS_SET);
+      super(EnglishAnalyzer.ENGLISH_STOP_WORDS_SET);
     }
 
     protected TokenStreamComponents createComponents(String fieldName) {
@@ -321,7 +316,7 @@ public class LuceneSearch extends SearchService {
         doc.add(new TextField(SEARCH_FIELD_TITLE, p.getTitle(), Field.Store.YES));
       }
       Date date = p.getDateStarted() != null ? p.getDateStarted() : p.getDateCreated();
-      doc.add(new LongField("modified", date.getTime(), Field.Store.NO));
+      doc.add(new LongPoint("modified", date.getTime()));
     } else {
       doc.add(new TextField(SEARCH_FIELD_TEXT, noteName, Field.Store.YES));
     }
@@ -390,14 +385,14 @@ public class LuceneSearch extends SearchService {
    */
   private void deleteDoc(String noteId, Paragraph p) {
     String fullNoteOrJustParagraph = formatDeleteId(noteId, p);
-    LOGGER.debug("Deleting note {}, out of: {}", noteId, indexWriter.numDocs());
+    LOGGER.debug("Deleting note {}, out of: {}", noteId, indexWriter.getDocStats().numDocs);
     try {
       indexWriter.deleteDocuments(new WildcardQuery(new Term(ID_FIELD, fullNoteOrJustParagraph)));
       indexWriter.commit();
     } catch (IOException e) {
       LOGGER.error("Failed to delete {} from index by '{}'", noteId, fullNoteOrJustParagraph, e);
     }
-    LOGGER.debug("Done, index contains {} docs now {}", indexWriter.numDocs());
+    LOGGER.debug("Done, index contains {} docs now", indexWriter.getDocStats().numDocs);
   }
 
   /* (non-Javadoc)
