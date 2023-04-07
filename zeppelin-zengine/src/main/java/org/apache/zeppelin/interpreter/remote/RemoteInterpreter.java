@@ -153,6 +153,10 @@ public class RemoteInterpreter extends Interpreter {
       if (!isCreated) {
         this.interpreterProcess = getOrCreateInterpreterProcess();
         if (!interpreterProcess.isRunning()) {
+          // Make sure that any future calls to internal_create() do not pick up the interpreter process
+          // that has failed to start.
+          this.interpreterProcess = null;
+          this.isCreated = false;
           throw new IOException("Interpreter process is not running\n" +
                   interpreterProcess.getErrorMessage());
         }
@@ -170,21 +174,22 @@ public class RemoteInterpreter extends Interpreter {
 
   @Override
   public void close() throws InterpreterException {
-    if (isOpened) {
-      RemoteInterpreterProcess interpreterProcess = null;
-      try {
-        interpreterProcess = getOrCreateInterpreterProcess();
-      } catch (IOException e) {
-        throw new InterpreterException(e);
-      }
-      interpreterProcess.callRemoteFunction(client -> {
+    // This path will be used when interpreter malfunctions and user wants to start over,
+    // so let's code maximally defensive
+    if (!isOpened || this.interpreterProcess == null) {
+      LOGGER.warn("close is called when RemoterInterpreter is not opened for {}", className);
+    } else if (!this.interpreterProcess.isRunning()) {
+      LOGGER.warn("close is called when RemoterInterpreter is not running for {}", className);
+    } else {
+      this.interpreterProcess.callRemoteFunction(client -> {
         client.close(sessionId, className);
         return null;
       });
-      isOpened = false;
-    } else {
-      LOGGER.warn("close is called when RemoterInterpreter is not opened for {}", className);
     }
+
+    isCreated = false;
+    isOpened = false;
+    this.interpreterProcess = null;
   }
 
   @Override
