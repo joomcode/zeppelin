@@ -155,10 +155,10 @@ public class RemoteInterpreter extends Interpreter {
         if (!interpreterProcess.isRunning()) {
           // Make sure that any future calls to internal_create() do not pick up the interpreter process
           // that has failed to start.
+          String errorMessage = interpreterProcess.getErrorMessage();
           this.interpreterProcess = null;
           this.isCreated = false;
-          throw new IOException("Interpreter process is not running\n" +
-                  interpreterProcess.getErrorMessage());
+          throw new IOException("Interpreter process is not running\n" + errorMessage);
         }
         interpreterProcess.callRemoteFunction(client -> {
           LOGGER.info("Create RemoteInterpreter {}", getClassName());
