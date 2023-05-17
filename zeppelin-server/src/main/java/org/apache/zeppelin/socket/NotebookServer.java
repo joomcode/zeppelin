@@ -302,7 +302,8 @@ public class NotebookServer extends WebSocketServlet
       }
 
       if (!ticketEntry.getTicket().equals(messagereceived.ticket)) {
-        LOG.info(String.format("username=%s clientToken=%s serverToken=%s auth tokens mismatch", messagereceived.principal));
+        LOG.info(String.format("username=%s clientToken=%s serverToken=%s auth tokens mismatch",
+                messagereceived.principal, messagereceived.ticket, ticketEntry.getTicket()));
         /* not to pollute logs, log instead of exception */
         conn.send(serializeMessage(new Message(OP.SESSION_LOGOUT).put("info",
                 "Your ticket is invalid possibly due to server restart. "
