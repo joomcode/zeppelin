@@ -28,4 +28,6 @@ RUN --mount=type=cache,target=/root/.m2 echo "unsafe-perm=true" > ~/.npmrc && \
     mv /workspace/zeppelin/zeppelin-distribution/target/zeppelin-*/zeppelin-*/* /opt/zeppelin/
 
 FROM ubuntu:20.04
+LABEL com.joom.retention.maxCount=10
+LABEL com.joom.retention.pullProtectDays=30
 COPY --from=builder /opt/zeppelin /opt/zeppelin
