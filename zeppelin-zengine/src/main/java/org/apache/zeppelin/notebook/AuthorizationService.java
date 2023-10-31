@@ -56,6 +56,8 @@ public class AuthorizationService implements ClusterEventListener {
   // cached note permission info. (noteId --> NoteAuth)
   private Map<String, NoteAuth> notesAuth = new HashMap<>();
 
+  private NoteAuth defaultNoteAuth;
+
   @Inject
   public AuthorizationService(NoteManager noteManager, ZeppelinConfiguration conf) {
     this.conf = conf;
@@ -71,11 +73,10 @@ public class AuthorizationService implements ClusterEventListener {
         }
       }
 
-      // initialize NoteAuth for the notes without permission set explicitly.
-      for (String noteId : noteManager.getNotesInfo().keySet()) {
-        if (!notesAuth.containsKey(noteId)) {
-          notesAuth.put(noteId, new NoteAuth(noteId));
-        }
+      if (authorizationInfoSaving.authInfo.containsKey("default")) {
+        defaultNoteAuth = new NoteAuth("default", authorizationInfoSaving.authInfo.get("default"));
+      } else {
+        defaultNoteAuth = new NoteAuth("default");
       }
     } catch (IOException e) {
       throw new RuntimeException("Fail to create ConfigStorage", e);
@@ -90,12 +91,12 @@ public class AuthorizationService implements ClusterEventListener {
    * @throws IOException
    */
   public void createNoteAuth(String noteId, AuthenticationInfo subject) throws IOException {
-    NoteAuth noteAuth =  new NoteAuth(noteId, subject);
+    NoteAuth noteAuth = new NoteAuth(noteId, subject);
     this.notesAuth.put(noteId, noteAuth);
   }
 
   public void cloneNoteMeta(String noteId, String sourceNoteId, AuthenticationInfo subject) throws IOException {
-    NoteAuth noteAuth =  new NoteAuth(noteId, subject);
+    NoteAuth noteAuth = new NoteAuth(noteId, subject);
     this.notesAuth.put(noteId, noteAuth);
   }
 
@@ -153,7 +154,7 @@ public class AuthorizationService implements ClusterEventListener {
     entities = normalizeUsers(entities);
     NoteAuth noteAuth = notesAuth.get(noteId);
     if (noteAuth == null) {
-      throw new IOException("No noteAuth found for noteId: " + noteId);
+      noteAuth = defaultNoteAuth.cloneWithNoteId(noteId);
     }
     noteAuth.setOwners(entities);
     if (broadcast) {
@@ -165,7 +166,7 @@ public class AuthorizationService implements ClusterEventListener {
     entities = normalizeUsers(entities);
     NoteAuth noteAuth = notesAuth.get(noteId);
     if (noteAuth == null) {
-      throw new IOException("No noteAuth found for noteId: " + noteId);
+      noteAuth = defaultNoteAuth.cloneWithNoteId(noteId);
     }
     noteAuth.setReaders(entities);
     if (broadcast) {
@@ -177,7 +178,7 @@ public class AuthorizationService implements ClusterEventListener {
     entities = normalizeUsers(entities);
     NoteAuth noteAuth = notesAuth.get(noteId);
     if (noteAuth == null) {
-      throw new IOException("No noteAuth found for noteId: " + noteId);
+      noteAuth = defaultNoteAuth.cloneWithNoteId(noteId);
     }
     noteAuth.setRunners(entities);
     if (broadcast) {
@@ -189,7 +190,7 @@ public class AuthorizationService implements ClusterEventListener {
     entities = normalizeUsers(entities);
     NoteAuth noteAuth = notesAuth.get(noteId);
     if (noteAuth == null) {
-      throw new IOException("No noteAuth found for noteId: " + noteId);
+      noteAuth = defaultNoteAuth.cloneWithNoteId(noteId);
     }
     noteAuth.setWriters(entities);
     if (broadcast) {
@@ -212,7 +213,7 @@ public class AuthorizationService implements ClusterEventListener {
   public void clearPermission(String noteId, boolean broadcast) throws IOException {
     NoteAuth noteAuth = notesAuth.get(noteId);
     if (noteAuth == null) {
-      throw new IOException("No noteAuth found for noteId: " + noteId);
+      noteAuth = defaultNoteAuth.cloneWithNoteId(noteId);
     }
     noteAuth.setReaders(Sets.newHashSet());
     noteAuth.setRunners(Sets.newHashSet());
@@ -227,8 +228,7 @@ public class AuthorizationService implements ClusterEventListener {
   public Set<String> getOwners(String noteId) {
     NoteAuth noteAuth = notesAuth.get(noteId);
     if (noteAuth == null) {
-      LOGGER.warn("No noteAuth found for noteId: {}", noteId);
-      return EMPTY_SET;
+      return defaultNoteAuth.getOwners();
     }
     return noteAuth.getOwners();
   }
@@ -236,8 +236,7 @@ public class AuthorizationService implements ClusterEventListener {
   public Set<String> getReaders(String noteId) {
     NoteAuth noteAuth = notesAuth.get(noteId);
     if (noteAuth == null) {
-      LOGGER.warn("No noteAuth found for noteId: {}", noteId);
-      return EMPTY_SET;
+      return defaultNoteAuth.getReaders();
     }
     return noteAuth.getReaders();
   }
@@ -245,8 +244,7 @@ public class AuthorizationService implements ClusterEventListener {
   public Set<String> getRunners(String noteId) {
     NoteAuth noteAuth = notesAuth.get(noteId);
     if (noteAuth == null) {
-      LOGGER.warn("No noteAuth found for noteId: {}", noteId);
-      return EMPTY_SET;
+      return defaultNoteAuth.getRunners();
     }
     return noteAuth.getRunners();
   }
@@ -254,8 +252,7 @@ public class AuthorizationService implements ClusterEventListener {
   public Set<String> getWriters(String noteId) {
     NoteAuth noteAuth = notesAuth.get(noteId);
     if (noteAuth == null) {
-      LOGGER.warn("No noteAuth found for noteId: {}", noteId);
-      return EMPTY_SET;
+      return defaultNoteAuth.getWriters();
     }
     return noteAuth.getWriters();
   }

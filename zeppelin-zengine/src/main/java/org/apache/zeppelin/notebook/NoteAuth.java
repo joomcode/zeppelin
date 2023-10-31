@@ -59,6 +59,16 @@ public class NoteAuth {
     this.owners = permissions.getOrDefault("owners", Sets.newHashSet());
   }
 
+  public NoteAuth cloneWithNoteId(String noteId) {
+    try {
+      NoteAuth result = (NoteAuth) this.clone();
+      result.noteId = noteId;
+      return result;
+    } catch (java.lang.CloneNotSupportedException e) {
+      throw new RuntimeException("cannot clone somehow", e);
+    }
+  }
+
   // used when creating new note
   public void initPermissions(AuthenticationInfo subject) {
     if (!AuthenticationInfo.isAnonymous(subject)) {
