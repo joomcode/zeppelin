@@ -56,7 +56,10 @@ public class AuthorizationService implements ClusterEventListener {
   // cached note permission info. (noteId --> NoteAuth)
   private Map<String, NoteAuth> notesAuth = new HashMap<>();
 
+  // Auth to use when a note does not has any explicit permissions
   private NoteAuth defaultNoteAuth;
+  // Auth info to force for new notes.
+  private NoteAuth forcedNewNoteAuth;
 
   @Inject
   public AuthorizationService(NoteManager noteManager, ZeppelinConfiguration conf) {
@@ -78,6 +81,9 @@ public class AuthorizationService implements ClusterEventListener {
       } else {
         defaultNoteAuth = new NoteAuth("default");
       }
+      if (authorizationInfoSaving.authInfo.containsKey("new")) {
+        forcedNewNoteAuth = new NoteAuth("new", authorizationInfoSaving.authInfo.get("new"));
+      }
     } catch (IOException e) {
       throw new RuntimeException("Fail to create ConfigStorage", e);
     }
@@ -91,7 +97,12 @@ public class AuthorizationService implements ClusterEventListener {
    * @throws IOException
    */
   public void createNoteAuth(String noteId, AuthenticationInfo subject) throws IOException {
-    NoteAuth noteAuth = new NoteAuth(noteId, subject);
+    NoteAuth noteAuth;
+    if (forcedNewNoteAuth != null) {
+      noteAuth = forcedNewNoteAuth.cloneWithNoteId(noteId);
+    } else {
+      noteAuth = new NoteAuth(noteId, subject);
+    }
     this.notesAuth.put(noteId, noteAuth);
   }
 

@@ -32,7 +32,7 @@ import java.util.Set;
  * Represent note authorization info, including (readers, writers, runners, owners)
  *
  */
-public class NoteAuth {
+public class NoteAuth implements Cloneable {
 
   private static Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
