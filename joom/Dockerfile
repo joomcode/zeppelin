@@ -19,7 +19,11 @@ LABEL org.opencontainers.image.source="https://github.com/joomcode/zeppelin"    
 # Replace complete affected artifact sets so an old JAR cannot win class loading.
 RUN rm -f /opt/zeppelin/lib/zeppelin-*.jar     /opt/zeppelin/interpreter/zeppelin-interpreter-shaded-*.jar     /opt/zeppelin/zeppelin-web-angular-*.war &&     rm -rf /opt/zeppelin/interpreter/spark /opt/zeppelin/interpreter/bigquery     /opt/zeppelin/plugins/Launcher/K8sStandardInterpreterLauncher     /opt/zeppelin/plugins/NotebookRepo/GCSNotebookRepo     /opt/zeppelin/plugins/NotebookRepo/S3NotebookRepo
 COPY overlay/ /opt/zeppelin/
-RUN ln -s /opt/zeppelin /zeppelin && chmod 755 /opt/zeppelin/bin/interpreter.sh &&     chmod 775 /opt/zeppelin
+RUN ln -s /opt/zeppelin /zeppelin && \
+    mkdir -p /opt/zeppelin/logs /opt/zeppelin/run /opt/zeppelin/webapps && \
+    chgrp 0 /opt/zeppelin /opt/zeppelin/logs /opt/zeppelin/run /opt/zeppelin/webapps && \
+    chmod 775 /opt/zeppelin /opt/zeppelin/logs /opt/zeppelin/run /opt/zeppelin/webapps && \
+    chmod 755 /opt/zeppelin/bin/interpreter.sh
 ENV Z_HOME=/zeppelin ZEPPELIN_HOME=/zeppelin HOME=/zeppelin
 USER 1000:0
 WORKDIR /zeppelin
