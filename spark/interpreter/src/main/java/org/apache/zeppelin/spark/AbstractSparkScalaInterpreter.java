@@ -33,15 +33,17 @@ import org.apache.spark.SparkJobInfo;
 import org.apache.spark.SparkStageInfo;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.SparkSession;
-import org.apache.zeppelin.interpreter.*;
-import org.apache.zeppelin.interpreter.thrift.InterpreterCompletion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import org.apache.zeppelin.interpreter.InterpreterContext;
+import org.apache.zeppelin.interpreter.InterpreterException;
+import org.apache.zeppelin.interpreter.InterpreterResult;
+import org.apache.zeppelin.interpreter.ZeppelinContext;
+import org.apache.zeppelin.interpreter.thrift.InterpreterCompletion;
 
 /**
  * This is bridge class which bridge the communication between java side and scala side.
@@ -224,6 +226,13 @@ public abstract class AbstractSparkScalaInterpreter {
     scalaInterpretQuietly("import sqlContext.implicits._");
     scalaInterpretQuietly("import spark.sql");
     scalaInterpretQuietly("import org.apache.spark.sql.functions._");
+    // SQL/Python can open this Scala session before the outer interpreter's precode hook.
+    // Initialize it here exactly once, after Spark bindings exist, for every opening order.
+    String precode = properties.getProperty("zeppelin.SparkInterpreter.precode",
+        "implicit val s = spark");
+    if (!precode.trim().isEmpty()) {
+      scalaInterpretQuietly(precode);
+    }
     // print empty string otherwise the last statement's output of this method
     // (aka. import org.apache.spark.sql.functions._) will mix with the output of user code
     scalaInterpretQuietly("print(\"\")");

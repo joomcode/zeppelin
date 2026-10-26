@@ -17,7 +17,22 @@
 
 package org.apache.zeppelin.spark;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import org.apache.zeppelin.display.AngularObjectRegistry;
 import org.apache.zeppelin.display.ui.CheckBox;
 import org.apache.zeppelin.display.ui.Password;
@@ -32,23 +47,6 @@ import org.apache.zeppelin.interpreter.InterpreterResult;
 import org.apache.zeppelin.interpreter.InterpreterResultMessageOutput;
 import org.apache.zeppelin.interpreter.remote.RemoteInterpreterEventClient;
 import org.apache.zeppelin.interpreter.thrift.InterpreterCompletion;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
 
 
 class SparkInterpreterTest {
@@ -73,6 +71,8 @@ class SparkInterpreterTest {
     properties.setProperty(SparkStringConstants.MASTER_PROP_NAME, "local");
     properties.setProperty(SparkStringConstants.APP_NAME_PROP_NAME, "test");
     properties.setProperty("zeppelin.spark.maxResult", "100");
+    properties.setProperty("zeppelin.SparkInterpreter.precode",
+        "implicit val s = spark; val precodeMarker = 17");
     properties.setProperty("zeppelin.spark.uiWebUrl", "fake_spark_weburl/{{applicationId}}");
     // disable color output for easy testing
     properties.setProperty("zeppelin.spark.scala.color", "false");
@@ -88,6 +88,10 @@ class SparkInterpreterTest {
     interpreter = new SparkInterpreter(properties);
     interpreter.setInterpreterGroup(mock(InterpreterGroup.class));
     interpreter.open();
+    // No executePrecode call: this is also how opening through SQL initializes Scala.
+    assertEquals(InterpreterResult.Code.SUCCESS,
+        interpreter.interpret("assert(s eq spark); assert(precodeMarker == 17)",
+            getInterpreterContext()).code());
 
     InterpreterResult result = interpreter.interpret("val a=\"hello world\"", getInterpreterContext());
     assertEquals(InterpreterResult.Code.SUCCESS, result.code());
