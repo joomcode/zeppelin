@@ -162,3 +162,87 @@ test('inline login preserves and subsequently saves a draft', async ({ page }) =
     .toBe('%md\nSESSION_LOCAL_EDIT');
   expect(await editorText(page)).toBe('%md\nSESSION_LOCAL_EDIT');
 });
+
+test('full paths survive cloning and renaming in the active UI', async ({ page }) => {
+  const title = page.getByTestId('notebook-title');
+  await expect(title).toHaveText('/migration-regression/Local-edits');
+  await expect(page).toHaveTitle(/\/migration-regression\/Local-edits/);
+  await page
+    .locator('button')
+    .filter({ has: page.locator('i.anticon-copy') })
+    .click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByPlaceholder('Insert Note Name')).toHaveValue('/migration-regression/Local-edits 1');
+  await dialog.getByRole('button', { name: 'Clone', exact: true }).click();
+  await expect(dialog).toBeHidden();
+  await expect.poll(() => page.url()).not.toContain(`/notebook/${noteId}`);
+  const copyId = page.url().split('/notebook/')[1].split('/')[0];
+  try {
+    await expect(title).toHaveText('/migration-regression/Local-edits 1');
+    await title.locator('p').click();
+    await title.locator('input').fill('/migration-regression/moved/Renamed');
+    await title.locator('input').press('Enter');
+    await expect
+      .poll(async () => (await (await page.request.get(api(`notebook/${copyId}`))).json()).body.path)
+      .toBe('/migration-regression/moved/Renamed');
+    await expect(title).toHaveText('/migration-regression/moved/Renamed');
+  } finally {
+    await page.goto('about:blank');
+    await page.request.delete(api(`notebook/${copyId}`));
+  }
+});
+
+test('two tabs retain independent pending edits', async ({ page }) => {
+  await edit(page, '%md\nUNSAVED_FIRST_TAB');
+  const second = await page.context().newPage();
+  try {
+    await second.goto(new URL(`#/notebook/${noteId}`, base).toString());
+    await second
+      .getByRole('textbox', { name: 'Editor content;Press Alt+F1 for Accessibility Options.' })
+      .first()
+      .waitFor();
+    await edit(second, '%md\nSAVED_SECOND_TAB');
+    blockCommits = false;
+    await second.getByRole('button', { name: 'Toggle Table of Contents' }).click();
+    await expect
+      .poll(
+        async () =>
+          (await (await page.request.get(api(`notebook/${noteId}`))).json()).body.paragraphs.find(
+            (p: { id: string }) => p.id === paragraphId
+          ).text
+      )
+      .toBe('%md\nSAVED_SECOND_TAB');
+    expect(await editorText(page)).toBe('%md\nUNSAVED_FIRST_TAB');
+    expect(await editorText(second)).toBe('%md\nSAVED_SECOND_TAB');
+  } finally {
+    await second.close();
+  }
+});
+
+test('late NOTE from a previous route cannot replace the selected notebook', async ({ page }) => {
+  holdNotes = true;
+  await reconnect();
+  await expect.poll(() => held.length).toBeGreaterThan(0);
+  const created = await page.request.post(api(`notebook/${noteId}`), {
+    data: { notePath: '/migration-regression/Other-route', name: '/migration-regression/Other-route' }
+  });
+  const otherId = (await created.json()).body;
+  try {
+    await page.goto(new URL(`#/notebook/${otherId}`, base).toString());
+    const frameNote = (frame: { message: string | Buffer }) => JSON.parse(frame.message.toString()).data.note?.id;
+    await expect.poll(() => held.some(frame => frameNote(frame) === otherId)).toBeTruthy();
+    holdNotes = false;
+    const frames = held.splice(0);
+    const previous = frames.filter(frame => frameNote(frame) === noteId);
+    frames.filter(frame => frameNote(frame) === otherId).forEach(frame => frame.client.send(frame.message));
+    await expect(page.getByTestId('notebook-title')).toHaveText('/migration-regression/Other-route');
+    await edit(page, '%md\nNEW_ROUTE_DRAFT');
+    previous.forEach(frame => frame.client.send(frame.message));
+    await page.waitForTimeout(500);
+    await expect(page.getByTestId('notebook-title')).toHaveText('/migration-regression/Other-route');
+    expect(await editorText(page)).toBe('%md\nNEW_ROUTE_DRAFT');
+  } finally {
+    await page.goto('about:blank');
+    await page.request.delete(api(`notebook/${otherId}`));
+  }
+});

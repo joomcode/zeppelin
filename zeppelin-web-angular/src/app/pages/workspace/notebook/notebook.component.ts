@@ -22,7 +22,7 @@ import {
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { isNil } from 'lodash';
-import { Subject } from 'rxjs';
+import { combineLatest, Subject } from 'rxjs';
 import { distinctUntilKeyChanged, map, startWith, takeUntil } from 'rxjs/operators';
 
 import { NzResizeEvent } from 'ng-zorro-antd/resizable';
@@ -81,6 +81,10 @@ export class NotebookComponent extends MessageListenersManager implements OnInit
   @MessageListener(OP.NOTE)
   getNote(data: MessageReceiveDataTypeMap[OP.NOTE]) {
     const note = data.note;
+    const activeNoteId = this.activatedRoute.snapshot.params.noteId;
+    if (note && activeNoteId && note.id !== activeNoteId) {
+      return;
+    }
     if (isNil(note)) {
       this.router.navigate(['/']).then();
     } else {
@@ -460,13 +464,15 @@ export class NotebookComponent extends MessageListenersManager implements OnInit
     });
     this.revisionView = !!this.activatedRoute.snapshot.params.revisionId;
 
-    // Fetch note when WebSocket connects or reconnects
-    this.messageService.connectedStatus$
-      .pipe(startWith(this.messageService.connectedStatus), takeUntil(this.destroy$))
-      .subscribe(connected => {
-        console.log('connectedStatus$ changed to ', connected ? 'connected' : 'disconnected');
+    // Angular reuses this component across notes. Fetch on route changes as well as reconnect.
+    combineLatest([
+      this.activatedRoute.params,
+      this.messageService.connectedStatus$.pipe(startWith(this.messageService.connectedStatus))
+    ])
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(([params, connected]) => {
         if (connected) {
-          const { noteId, revisionId } = this.activatedRoute.snapshot.params;
+          const { noteId, revisionId } = params;
           if (!noteId) {
             throw new Error('Route parameter `noteId` is required.');
           }
