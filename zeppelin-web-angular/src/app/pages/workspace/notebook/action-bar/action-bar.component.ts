@@ -78,9 +78,10 @@ export class NotebookActionBarComponent extends MessageListenersManager implemen
 
   updateNoteName(name: string) {
     const trimmedNewName = name.trim();
-    if (trimmedNewName.length > 0 && this.note.name !== trimmedNewName) {
-      this.note.name = trimmedNewName;
-      this.messageService.noteRename(this.note.id, this.note.name, true);
+    if (trimmedNewName.length > 0 && (this.note.path || this.note.name) !== trimmedNewName) {
+      this.note.path = trimmedNewName.startsWith('/') ? trimmedNewName : `/${trimmedNewName}`;
+      this.note.name = this.note.path.slice(this.note.path.lastIndexOf('/') + 1);
+      this.messageService.noteRename(this.note.id, this.note.path, false);
     }
   }
 

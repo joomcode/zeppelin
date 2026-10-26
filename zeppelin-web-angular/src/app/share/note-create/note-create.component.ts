@@ -58,28 +58,16 @@ export class NoteCreateComponent extends MessageListenersManager implements OnIn
   }
 
   cloneNoteName(cloneNote: Exclude<Note['note'], undefined>) {
+    const fullPath = cloneNote.path || cloneNote.name;
+    const prefix = fullPath.replace(/ \d+$/, '');
     let copyCount = 1;
-    let newCloneName = '';
-    const lastIndex = cloneNote.name.lastIndexOf(' ');
-    const endsWithNumber = !!cloneNote.name.match('^.+?\\s\\d$');
-    const noteNamePrefix = endsWithNumber ? cloneNote.name.substr(0, lastIndex) : cloneNote.name;
-    const regexp = new RegExp(`^${noteNamePrefix}.+`);
-
     this.noteListService.notes.flatList.forEach(note => {
-      const noteName = note.path;
-      if (noteName.match(regexp)) {
-        const lastCopyCount = parseInt(noteName.substr(lastIndex).trim(), 10);
-        newCloneName = noteNamePrefix;
-        if (copyCount <= lastCopyCount) {
-          copyCount = lastCopyCount + 1;
-        }
+      const suffix = note.path.startsWith(`${prefix} `) ? note.path.slice(prefix.length + 1) : '';
+      if (/^\d+$/.test(suffix)) {
+        copyCount = Math.max(copyCount, Number(suffix) + 1);
       }
     });
-
-    if (!newCloneName) {
-      newCloneName = cloneNote.name;
-    }
-    return `${newCloneName} ${copyCount}`;
+    return `${prefix} ${copyCount}`;
   }
 
   createNote() {

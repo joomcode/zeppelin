@@ -16,7 +16,7 @@
       nz-tooltip
       [nzTooltipTitle]="note.path"
       [readonly]="revisionView"
-      [value]="note.name"
+      [value]="note.path || note.name"
       (valueUpdate)="updateNoteName($event)"
     ></zeppelin-elastic-input>
   </div>

@@ -30,6 +30,10 @@ import { NoteActionService } from './note-action.service';
 export class NodeListComponent extends MessageListenersManager implements OnInit {
   @Input() headerMode = false;
   searchValue = '';
+  searchPath = (node: NzTreeNodeOptions): boolean =>
+    String(node.path || node.id || node.title)
+      .toLowerCase()
+      .includes(this.searchValue.toLowerCase());
   nodes: NzTreeNodeOptions[] = [];
   activatedId?: string;
 
