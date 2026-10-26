@@ -19,6 +19,7 @@ package org.apache.zeppelin.rest;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,6 +32,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.zeppelin.annotation.ZeppelinApi;
+import org.apache.zeppelin.notebook.AuthorizationService;
 import org.apache.zeppelin.server.JsonResponse;
 import org.apache.zeppelin.service.AuthenticationService;
 import org.apache.zeppelin.ticket.TicketContainer;
@@ -46,9 +48,13 @@ import org.slf4j.LoggerFactory;
 public class SecurityRestApi extends AbstractRestApi {
   private static final Logger LOGGER = LoggerFactory.getLogger(SecurityRestApi.class);
 
+  private final AuthorizationService authorizationService;
+
   @Inject
-  public SecurityRestApi(AuthenticationService authenticationService) {
+  public SecurityRestApi(AuthenticationService authenticationService,
+                        AuthorizationService authorizationService) {
     super(authenticationService);
+    this.authorizationService = authorizationService;
   }
 
   /**
@@ -71,6 +77,8 @@ public class SecurityRestApi extends AbstractRestApi {
       ticketEntry = TicketContainer.ANONYMOUS_ENTRY;
     } else {
       ticketEntry = TicketContainer.instance.getTicketEntry(principal, roles);
+      // SSO filters bypass LoginRestApi; broadcasts must use these authenticated roles too.
+      authorizationService.setRoles(principal, new HashSet<>(roles), false);
     }
 
     Map<String, String> data = new HashMap<>();
@@ -79,7 +87,7 @@ public class SecurityRestApi extends AbstractRestApi {
     data.put("ticket", ticketEntry.getTicket());
 
     JsonResponse<Map<String, String>> response = new JsonResponse<>(Response.Status.OK, "", data);
-    LOGGER.warn("{}", response);
+    LOGGER.debug("Issued websocket ticket for {}", principal);
     return response.build();
   }
 
