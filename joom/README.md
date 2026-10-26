@@ -54,6 +54,13 @@ ZEPPELIN_REGRESSION_CREDENTIALS=/private/path/credentials.json \
   ./node/node ./node_modules/@playwright/test/cli.js test --config=playwright.migration.config.js
 ```
 
+For this recorded pilot, port 18081 remains the unchanged upstream UI control.
+The seven compiled-UI Shiro controls used the localhost proxy on port 19090.
+Its reproducible script is in the deployment branch at
+`analytics/joom/deploy/kubernetes-gcp/zeppelin/audit-012/scripts/ui-proxy.cjs`.
+Use `ZEPPELIN_REGRESSION_URL=http://127.0.0.1:19090/` to repeat that comparison;
+a direct 18081 run is the expected failing upstream control.
+
 For GCP balloon, use its local port-forward with the /balloon-gcp/ context and
 `ZEPPELIN_REGRESSION_REMOTE_USER=aleksandrov`. This header-mode check validates the
 backend remote-user integration; it does not replace a real browser SSO-session check.
