@@ -18,18 +18,17 @@
 package org.apache.zeppelin.notebook;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.zeppelin.conf.ZeppelinConfiguration;
-import org.apache.zeppelin.storage.ConfigStorage;
-import org.apache.zeppelin.user.AuthenticationInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import jakarta.inject.Inject;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import jakarta.inject.Inject;
+import org.apache.zeppelin.conf.ZeppelinConfiguration;
+import org.apache.zeppelin.storage.ConfigStorage;
+import org.apache.zeppelin.user.AuthenticationInfo;
 
 /**
  * This class is responsible for maintain notes authorization info. And provide api for
@@ -38,9 +37,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AuthorizationService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AuthorizationService.class);
-  private static final Set<String> EMPTY_SET = new HashSet<>();
 
   private final ZeppelinConfiguration zConf;
+  private NoteAuth defaultNoteAuth;
+  private NoteAuth forcedNewNoteAuth;
   private final ConfigStorage configStorage;
 
   // contains roles for each user (username --> roles)
@@ -66,12 +66,9 @@ public class AuthorizationService {
         }
       }
 
-      // initialize NoteAuth for the notes without permission set explicitly.
-      for (String noteId : noteManager.getNotesInfo().keySet()) {
-        if (!notesAuth.containsKey(noteId)) {
-          notesAuth.put(noteId, new NoteAuth(noteId, zConf));
-        }
-      }
+      // Keep the global policies rather than expanding them into one entry per note.
+      defaultNoteAuth = notesAuth.getOrDefault("default", new NoteAuth("default", zConf));
+      forcedNewNoteAuth = notesAuth.get("new");
     } catch (IOException e) {
       throw new RuntimeException("Fail to create ConfigStorage", e);
     }
@@ -85,7 +82,8 @@ public class AuthorizationService {
    * @throws IOException
    */
   public void createNoteAuth(String noteId, AuthenticationInfo subject) {
-    NoteAuth noteAuth = new NoteAuth(noteId, subject, zConf);
+    NoteAuth noteAuth = forcedNewNoteAuth == null
+        ? new NoteAuth(noteId, subject, zConf) : forcedNewNoteAuth.copyForNote(noteId);
     this.notesAuth.put(noteId, noteAuth);
   }
 
@@ -139,37 +137,25 @@ public class AuthorizationService {
 
   public void setOwners(String noteId, Set<String> entities, boolean broadcast) throws IOException {
     entities = normalizeUsers(entities);
-    NoteAuth noteAuth = notesAuth.get(noteId);
-    if (noteAuth == null) {
-      throw new IOException("No noteAuth found for noteId: " + noteId);
-    }
+    NoteAuth noteAuth = notesAuth.computeIfAbsent(noteId, defaultNoteAuth::copyForNote);
     noteAuth.setOwners(entities);
   }
 
   public void setReaders(String noteId, Set<String> entities, boolean broadcast) throws IOException {
     entities = normalizeUsers(entities);
-    NoteAuth noteAuth = notesAuth.get(noteId);
-    if (noteAuth == null) {
-      throw new IOException("No noteAuth found for noteId: " + noteId);
-    }
+    NoteAuth noteAuth = notesAuth.computeIfAbsent(noteId, defaultNoteAuth::copyForNote);
     noteAuth.setReaders(entities);
   }
 
   public void setRunners(String noteId, Set<String> entities, boolean broadcast) throws IOException {
     entities = normalizeUsers(entities);
-    NoteAuth noteAuth = notesAuth.get(noteId);
-    if (noteAuth == null) {
-      throw new IOException("No noteAuth found for noteId: " + noteId);
-    }
+    NoteAuth noteAuth = notesAuth.computeIfAbsent(noteId, defaultNoteAuth::copyForNote);
     noteAuth.setRunners(entities);
   }
 
   public void setWriters(String noteId, Set<String> entities, boolean broadcast) throws IOException {
     entities = normalizeUsers(entities);
-    NoteAuth noteAuth = notesAuth.get(noteId);
-    if (noteAuth == null) {
-      throw new IOException("No noteAuth found for noteId: " + noteId);
-    }
+    NoteAuth noteAuth = notesAuth.computeIfAbsent(noteId, defaultNoteAuth::copyForNote);
     noteAuth.setWriters(entities);
   }
 
@@ -183,10 +169,7 @@ public class AuthorizationService {
   }
 
   public void clearPermission(String noteId, boolean broadcast) throws IOException {
-    NoteAuth noteAuth = notesAuth.get(noteId);
-    if (noteAuth == null) {
-      throw new IOException("No noteAuth found for noteId: " + noteId);
-    }
+    NoteAuth noteAuth = notesAuth.computeIfAbsent(noteId, defaultNoteAuth::copyForNote);
     noteAuth.setReaders(new HashSet<>());
     noteAuth.setRunners(new HashSet<>());
     noteAuth.setWriters(new HashSet<>());
@@ -195,38 +178,22 @@ public class AuthorizationService {
   }
 
   public Set<String> getOwners(String noteId) {
-    NoteAuth noteAuth = notesAuth.get(noteId);
-    if (noteAuth == null) {
-      LOGGER.warn("No noteAuth found for noteId: {}", noteId);
-      return EMPTY_SET;
-    }
+    NoteAuth noteAuth = notesAuth.getOrDefault(noteId, defaultNoteAuth);
     return noteAuth.getOwners();
   }
 
   public Set<String> getReaders(String noteId) {
-    NoteAuth noteAuth = notesAuth.get(noteId);
-    if (noteAuth == null) {
-      LOGGER.warn("No noteAuth found for noteId: {}", noteId);
-      return EMPTY_SET;
-    }
+    NoteAuth noteAuth = notesAuth.getOrDefault(noteId, defaultNoteAuth);
     return noteAuth.getReaders();
   }
 
   public Set<String> getRunners(String noteId) {
-    NoteAuth noteAuth = notesAuth.get(noteId);
-    if (noteAuth == null) {
-      LOGGER.warn("No noteAuth found for noteId: {}", noteId);
-      return EMPTY_SET;
-    }
+    NoteAuth noteAuth = notesAuth.getOrDefault(noteId, defaultNoteAuth);
     return noteAuth.getRunners();
   }
 
   public Set<String> getWriters(String noteId) {
-    NoteAuth noteAuth = notesAuth.get(noteId);
-    if (noteAuth == null) {
-      LOGGER.warn("No noteAuth found for noteId: {}", noteId);
-      return EMPTY_SET;
-    }
+    NoteAuth noteAuth = notesAuth.getOrDefault(noteId, defaultNoteAuth);
     return noteAuth.getWriters();
   }
 

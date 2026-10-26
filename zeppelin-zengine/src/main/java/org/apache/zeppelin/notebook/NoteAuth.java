@@ -17,13 +17,12 @@
 
 package org.apache.zeppelin.notebook;
 
-import org.apache.zeppelin.conf.ZeppelinConfiguration;
-import org.apache.zeppelin.user.AuthenticationInfo;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.apache.zeppelin.conf.ZeppelinConfiguration;
+import org.apache.zeppelin.user.AuthenticationInfo;
 
 /**
  * Represent note authorization info, including (readers, writers, runners, owners)
@@ -60,10 +59,15 @@ public class NoteAuth {
   public NoteAuth(String noteId, Map<String, Set<String>> permissions, ZeppelinConfiguration zConf) {
     this.noteId = noteId;
     this.zConf = zConf;
-    this.readers = permissions.getOrDefault("readers", new HashSet<>());
-    this.writers = permissions.getOrDefault("writers", new HashSet<>());
-    this.runners = permissions.getOrDefault("runners", new HashSet<>());
-    this.owners = permissions.getOrDefault("owners", new HashSet<>());
+    this.readers = new HashSet<>(permissions.getOrDefault("readers", new HashSet<>()));
+    this.writers = new HashSet<>(permissions.getOrDefault("writers", new HashSet<>()));
+    this.runners = new HashSet<>(permissions.getOrDefault("runners", new HashSet<>()));
+    this.owners = new HashSet<>(permissions.getOrDefault("owners", new HashSet<>()));
+  }
+
+  /** Copy policy sets so editing a note cannot change another note or the global policy. */
+  public NoteAuth copyForNote(String id) {
+    return new NoteAuth(id, toMap(), zConf);
   }
 
   // used when creating new note
