@@ -26,6 +26,7 @@ import org.apache.zeppelin.interpreter.InterpreterSettingManager;
 import org.apache.zeppelin.notebook.Notebook;
 import org.apache.zeppelin.notebook.repo.NotebookRepoWithVersionControl;
 import org.apache.zeppelin.rest.message.ParametersRequest;
+import org.apache.zeppelin.search.SearchService;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,6 +51,7 @@ import org.apache.zeppelin.user.AuthenticationInfo;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -88,6 +90,40 @@ class NotebookRestApiTest extends AbstractTestRestApi {
     zConf = zepServer.getZeppelinConfiguration();
     notebook = zepServer.getService(Notebook.class);
     anonymous = new AuthenticationInfo("anonymous");
+  }
+
+  @Test
+  void testRestParagraphEditsUpdateSearch() throws Exception {
+    SearchService search = zepServer.getService(SearchService.class);
+    String noteId = notebook.createNote("rest-search", anonymous);
+    try {
+      String paragraphId = notebook.processNote(noteId, note -> {
+        Paragraph p = note.addNewParagraph(anonymous);
+        notebook.saveNote(note, anonymous);
+        return p.getId();
+      });
+      String marker = "restsearch" + UUID.randomUUID().toString().replace("-", "");
+      try (CloseableHttpResponse response = httpPut(
+          "/notebook/" + noteId + "/paragraph/" + paragraphId,
+          gson.toJson(Collections.singletonMap("text", marker)))) {
+        assertThat(response, isAllowed());
+      }
+      for (int i = 0; i < 100 && search.query(marker).isEmpty(); i++) {
+        Thread.sleep(50);
+      }
+      assertFalse(search.query(marker).isEmpty());
+      try (CloseableHttpResponse response = httpPut(
+          "/notebook/" + noteId + "/paragraph/" + paragraphId,
+          gson.toJson(Collections.singletonMap("text", "replacement")))) {
+        assertThat(response, isAllowed());
+      }
+      for (int i = 0; i < 100 && !search.query(marker).isEmpty(); i++) {
+        Thread.sleep(50);
+      }
+      assertTrue(search.query(marker).isEmpty());
+    } finally {
+      notebook.removeNote(noteId, anonymous);
+    }
   }
 
   @Test

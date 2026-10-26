@@ -705,6 +705,7 @@ public class NotebookRestApi extends AbstractRestApi {
         }
 
         AuthenticationInfo subject = new AuthenticationInfo(user);
+        note.fireParagraphUpdateEvent(p);
         notebook.saveNote(note, subject);
         notebookServer.broadcastParagraph(note, p, MSG_ID_NOT_DEFINED);
         return new JsonResponse<>(Status.OK, "").build();

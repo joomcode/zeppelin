@@ -24,10 +24,10 @@ import hashlib,sys
 assert hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest() == '550b63c794afbb82d5d54c1dc4b9e17002dc2a7e272bcee06554674c0d5cf24a'
 CHECK
 tar -xzf "$archive" -C spark/interpreter/target spark-3.5.3/python
-modules=zeppelin-server,bigquery,spark/scala-2.12,zeppelin-plugins/launcher/k8s-standard,zeppelin-plugins/notebookrepo/gcs,zeppelin-plugins/notebookrepo/s3
+modules=zeppelin-server,markdown,shell,bigquery,spark/scala-2.12,zeppelin-plugins/launcher/k8s-standard,zeppelin-plugins/notebookrepo/gcs,zeppelin-plugins/notebookrepo/s3
 common=(-B -ntp -pl "$modules" -am -Dmaven.gitcommitid.nativegit=true -Ddownload.plugin.skip=true -Dcheckstyle.skip=true -Pspark-3.5 -Pspark-scala-2.12)
 ./mvnw "${common[@]}" install -DskipTests
-./mvnw "${common[@]}" test -Dsurefire.failIfNoSpecifiedTests=false '-Dtest=AuthorizationPolicyTest,NoteAuthTest,NoteTest,LuceneSearchTest,NotebookServiceTest,RemoteInterpreterCloseTest,ManagedInterpreterGroupTest,PooledRemoteFailureTest,BigQueryResultTest,DnsReadyTest,SparkUtilsTest,SparkInterpreterTest#testSparkInterpreter'
+./mvnw "${common[@]}" test -Dsurefire.failIfNoSpecifiedTests=false '-Dtest=AuthorizationPolicyTest,NoteAuthTest,NoteTest,LuceneSearchTest,NotebookServiceTest,NotebookRestApiTest#testRestParagraphEditsUpdateSearch,RemoteInterpreterCloseTest,ManagedInterpreterGroupTest,PooledRemoteFailureTest,BigQueryResultTest,DnsReadyTest,SparkUtilsTest,SparkInterpreterTest#testSparkInterpreter'
 python3 joom/test_impersonation.py
 python3 joom/check_changed_style.py
 ./mvnw -B -ntp org.apache.maven.plugins:maven-install-plugin:3.1.2:install-file   -Dfile=joom/vendor/shiro-remote-user-0.0.1-SNAPSHOT.jar -DgroupId=com.joom.vendor   -DartifactId=shiro-remote-user -Dversion=0.0.1 -Dpackaging=jar -DgeneratePom=true
