@@ -22,9 +22,9 @@ import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
-import org.apache.zeppelin.interpreter.thrift.InterpreterRPCException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.zeppelin.interpreter.thrift.InterpreterRPCException;
 
 /**
  * Use this class to connect to remote thrift server and invoke any thrift rpc.
@@ -94,33 +94,28 @@ public class PooledRemoteClient<T extends TServiceClient> implements AutoCloseab
   }
 
   public <R> R callRemoteFunction(RemoteFunction<R, T> func) {
-    boolean broken = false;
-    String errorCause = null;
-    for (int i = 0;i < RETRY_COUNT; ++ i) {
+    Exception error = null;
+    for (int i = 0; i < RETRY_COUNT; ++i) {
       T client = null;
-      broken = false;
+      error = null;
       try {
         client = getClient();
         if (client != null) {
           return func.call(client);
         }
       } catch (InterpreterRPCException e) {
-        // zeppelin side exception, no need to retry
-        broken = true;
-        errorCause = e.getErrorMessage();
+        error = e;
         break;
-      } catch (Exception e1) {
-        // thrift framework exception (maybe due to network issue), need to retry
-        broken = true;
-        continue;
+      } catch (Exception e) {
+        error = e;
       } finally {
         if (client != null) {
-          releaseClient(client, broken);
+          releaseClient(client, error != null);
         }
       }
     }
-    if (broken) {
-      throw new RuntimeException(errorCause);
+    if (error != null) {
+      throw new RuntimeException("Could not call interpreter function", error);
     }
     return null;
   }
