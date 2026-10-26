@@ -21,6 +21,12 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.display.AngularObject;
 import org.apache.zeppelin.display.AngularObjectRegistry;
@@ -41,13 +47,6 @@ import org.apache.zeppelin.scheduler.Job;
 import org.apache.zeppelin.scheduler.RemoteScheduler;
 import org.apache.zeppelin.scheduler.Scheduler;
 import org.apache.zeppelin.scheduler.SchedulerFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 
 /**
  * Proxy for Interpreter instance that runs on separate process
@@ -154,8 +153,10 @@ public class RemoteInterpreter extends Interpreter {
       if (!isCreated) {
         this.interpreterProcess = getOrCreateInterpreterProcess();
         if (!interpreterProcess.isRunning()) {
-          throw new IOException("Interpreter process is not running\n" +
-                  interpreterProcess.getErrorMessage());
+          String errorMessage = interpreterProcess.getErrorMessage();
+          this.interpreterProcess = null;
+          isCreated = false;
+          throw new IOException("Interpreter process is not running\n" + errorMessage);
         }
         interpreterProcess.callRemoteFunction(client -> {
           LOGGER.info("Create RemoteInterpreter {}", getClassName());
@@ -171,20 +172,19 @@ public class RemoteInterpreter extends Interpreter {
 
   @Override
   public void close() throws InterpreterException {
-    if (isOpened) {
-      RemoteInterpreterProcess interpreterProcess = null;
-      try {
-        interpreterProcess = getOrCreateInterpreterProcess();
-      } catch (IOException e) {
-        throw new InterpreterException(e);
+    try {
+      if (isOpened && interpreterProcess != null && interpreterProcess.isRunning()) {
+        interpreterProcess.callRemoteFunction(client -> {
+          client.close(sessionId, className);
+          return null;
+        });
       }
-      interpreterProcess.callRemoteFunction(client -> {
-        client.close(sessionId, className);
-        return null;
-      });
+    } finally {
+      // Closing a failed open must not create a process or retain half-created state.
       isOpened = false;
-    } else {
-      LOGGER.warn("close is called when RemoterInterpreter is not opened for {}", className);
+      isCreated = false;
+      formType = null;
+      interpreterProcess = null;
     }
   }
 

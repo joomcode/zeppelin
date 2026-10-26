@@ -18,19 +18,18 @@
 
 package org.apache.zeppelin.interpreter;
 
-import org.apache.zeppelin.conf.ZeppelinConfiguration;
-import org.apache.zeppelin.interpreter.remote.RemoteInterpreterProcess;
-import org.apache.zeppelin.scheduler.Job;
-import org.apache.zeppelin.scheduler.Scheduler;
-import org.apache.zeppelin.scheduler.SchedulerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
+import org.apache.zeppelin.conf.ZeppelinConfiguration;
+import org.apache.zeppelin.interpreter.remote.RemoteInterpreterProcess;
+import org.apache.zeppelin.scheduler.Job;
+import org.apache.zeppelin.scheduler.Scheduler;
+import org.apache.zeppelin.scheduler.SchedulerFactory;
 
 /**
  * ManagedInterpreterGroup runs under zeppelin server
@@ -68,10 +67,22 @@ public class ManagedInterpreterGroup extends InterpreterGroup {
         LOGGER.info("Create InterpreterProcess for InterpreterGroup: {}", getId());
         remoteInterpreterProcess = interpreterSetting.createInterpreterProcess(id, userName,
                 properties);
-        remoteInterpreterProcess.start(userName);
-        remoteInterpreterProcess.init(zConf);
-        getInterpreterSetting().getRecoveryStorage()
-                .onInterpreterClientStart(remoteInterpreterProcess);
+        try {
+          remoteInterpreterProcess.start(userName);
+          remoteInterpreterProcess.init(zConf);
+          getInterpreterSetting().getRecoveryStorage()
+                  .onInterpreterClientStart(remoteInterpreterProcess);
+        } catch (IOException | RuntimeException e) {
+          // Permit a later open after a launch timeout, preserving the original failure.
+          try {
+            remoteInterpreterProcess.stop();
+          } catch (Exception cleanup) {
+            e.addSuppressed(cleanup);
+          } finally {
+            remoteInterpreterProcess = null;
+          }
+          throw e;
+        }
       }
       return remoteInterpreterProcess;
     }

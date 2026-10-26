@@ -17,17 +17,17 @@
 
 package org.apache.zeppelin.interpreter;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.apache.zeppelin.conf.ZeppelinConfiguration;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.eclipse.aether.RepositoryException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.apache.zeppelin.conf.ZeppelinConfiguration;
+import org.apache.zeppelin.interpreter.recovery.RecoveryStorage;
+import org.apache.zeppelin.interpreter.remote.RemoteInterpreterProcess;
 
 
 class ManagedInterpreterGroupTest {
@@ -55,6 +55,28 @@ class ManagedInterpreterGroupTest {
         .setOption(interpreterOption)
         .setConf(zConf)
         .create();
+  }
+
+  @Test
+  void failedLaunchIsDiscardedBeforeRetry() throws Exception {
+    InterpreterSetting setting = org.mockito.Mockito.mock(InterpreterSetting.class);
+    RecoveryStorage recovery =
+        org.mockito.Mockito.mock(RecoveryStorage.class);
+    RemoteInterpreterProcess first =
+        org.mockito.Mockito.mock(RemoteInterpreterProcess.class);
+    RemoteInterpreterProcess second =
+        org.mockito.Mockito.mock(RemoteInterpreterProcess.class);
+    org.mockito.Mockito.when(setting.getRecoveryStorage()).thenReturn(recovery);
+    org.mockito.Mockito.when(setting.createInterpreterProcess(
+        org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(),
+        org.mockito.ArgumentMatchers.any())).thenReturn(first, second);
+    org.mockito.Mockito.doThrow(new IOException("launch timeout")).when(first).start("user");
+    ManagedInterpreterGroup group = new ManagedInterpreterGroup("group", setting, zConf);
+    org.junit.jupiter.api.Assertions.assertThrows(IOException.class,
+        () -> group.getOrCreateInterpreterProcess("user", new java.util.Properties()));
+    org.mockito.Mockito.verify(first).stop();
+    org.junit.jupiter.api.Assertions.assertSame(second,
+        group.getOrCreateInterpreterProcess("user", new java.util.Properties()));
   }
 
   @Test
