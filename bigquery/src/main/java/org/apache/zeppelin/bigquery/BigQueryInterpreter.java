@@ -16,295 +16,134 @@
 
 package org.apache.zeppelin.bigquery;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.GenericJson;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
-import com.google.api.client.util.Joiner;
-import com.google.api.services.bigquery.Bigquery;
-import com.google.api.services.bigquery.Bigquery.Jobs.GetQueryResults;
-import com.google.api.services.bigquery.BigqueryRequest;
-import com.google.api.services.bigquery.BigqueryScopes;
-import com.google.api.services.bigquery.model.GetQueryResultsResponse;
-import com.google.api.services.bigquery.model.Job;
-import com.google.api.services.bigquery.model.JobCancelResponse;
-import com.google.api.services.bigquery.model.QueryRequest;
-import com.google.api.services.bigquery.model.QueryResponse;
-import com.google.api.services.bigquery.model.TableCell;
-import com.google.api.services.bigquery.model.TableFieldSchema;
-import com.google.api.services.bigquery.model.TableRow;
-import com.google.common.base.Function;
-
-import org.apache.commons.lang3.StringUtils;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.bigquery.FieldValue;
+import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.Job;
+import com.google.cloud.bigquery.JobId;
+import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.TableResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
+import java.util.Collections;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Properties;
-
+import java.util.stream.Collectors;
 import org.apache.zeppelin.interpreter.Interpreter;
 import org.apache.zeppelin.interpreter.InterpreterContext;
 import org.apache.zeppelin.interpreter.InterpreterResult;
-import org.apache.zeppelin.interpreter.InterpreterResult.Code;
 import org.apache.zeppelin.interpreter.thrift.InterpreterCompletion;
 import org.apache.zeppelin.scheduler.Scheduler;
 import org.apache.zeppelin.scheduler.SchedulerFactory;
 
-/**
- * BigQuery interpreter for Zeppelin.
- * 
- * <ul>
- * <li>{@code zeppelin.bigquery.project_id} - Project ID in GCP</li>
- * <li>{@code zeppelin.bigquery.wait_time} - Query Timeout in ms</li>
- * <li>{@code zeppelin.bigquery.max_no_of_rows} - Max Result size</li>
- * </ul>
- * 
- * <p>
- * How to use: <br/>
- * {@code %bigquery.sql<br/>
- * {@code
- *  SELECT departure_airport,count(case when departure_delay>0 then 1 else 0 end) as no_of_delays 
- *  FROM [bigquery-samples:airline_ontime_data.flights] 
- *  group by departure_airport 
- *  order by 2 desc 
- *  limit 10
- * }
- * </p>
- * 
- */
+/** BigQuery jobs using application default credentials and the configured billing project. */
 public class BigQueryInterpreter extends Interpreter {
   private static final Logger LOGGER = LoggerFactory.getLogger(BigQueryInterpreter.class);
-  private static final char NEWLINE = '\n';
-  private static final char TAB = '\t';
-  private static Bigquery service = null;
-  //Mutex created to create the singleton in thread-safe fashion.
-  private static Object serviceLock = new Object();
-
   static final String PROJECT_ID = "zeppelin.bigquery.project_id";
   static final String WAIT_TIME = "zeppelin.bigquery.wait_time";
   static final String MAX_ROWS = "zeppelin.bigquery.max_no_of_rows";
   static final String SQL_DIALECT = "zeppelin.bigquery.sql_dialect";
   static final String REGION = "zeppelin.bigquery.region";
 
-  private static String jobId = null;
-  private static String projectId = null;
+  // A service and running job belong to this interpreter, not another user or project.
+  private BigQuery service;
+  private volatile Job currentJob;
 
-  private static final List NO_COMPLETION = new ArrayList<>();
-  private Exception exceptionOnConnect;
-
-  private static final Function<CharSequence, String> sequenceToStringTransformer =
-      new Function<CharSequence, String>() {
-        public String apply(CharSequence seq) {
-          return seq.toString();
-        }
-      };
-
-  public BigQueryInterpreter(Properties property) {
-    super(property);
+  public BigQueryInterpreter(Properties properties) {
+    super(properties);
   }
 
-  //Function to return valid BigQuery Service
+  BigQueryInterpreter(Properties properties, BigQuery service) {
+    this(properties);
+    this.service = service;
+  }
+
   @Override
   public void open() {
     if (service == null) {
-      synchronized (serviceLock) {
-        if (service == null) {
-          try {
-            service = createAuthorizedClient();
-            exceptionOnConnect = null;
-            LOGGER.info("Opened BigQuery SQL Connection");
-          } catch (IOException e) {
-            LOGGER.error("Cannot open connection", e);
-            exceptionOnConnect = e;   
-            close();
-          }
-        }
-      }
+      service = BigQueryOptions.newBuilder()
+          .setProjectId(getProperty(PROJECT_ID)).build().getService();
     }
   }
 
-  //Function that Creates an authorized client to Google Bigquery.
-  private static Bigquery createAuthorizedClient() throws IOException {
-    HttpTransport transport = new NetHttpTransport();
-    JsonFactory jsonFactory = new JacksonFactory();
-    GoogleCredential credential =  GoogleCredential.getApplicationDefault(transport, jsonFactory);
-
-    if (credential.createScopedRequired()) {
-      Collection<String> bigqueryScopes = BigqueryScopes.all();
-      credential = credential.createScoped(bigqueryScopes);
-    }
-
-    return new Bigquery.Builder(transport, jsonFactory, credential)
-        .setApplicationName("Zeppelin/1.0 (GPN:Apache Zeppelin;)").build();
-  }
-
-  //Function that generates and returns the schema and the rows as string
-  public static String printRows(final GetQueryResultsResponse response) {
-    StringBuilder msg = new StringBuilder();
+  @Override
+  public InterpreterResult interpret(String sql, InterpreterContext context) {
+    Job job = null;
     try {
-      List<String> schemNames = new ArrayList<String>();
-      for (TableFieldSchema schem: response.getSchema().getFields()) {
-        schemNames.add(schem.getName());
+      open();
+      String dialect = getProperty(SQL_DIALECT, "").toLowerCase(java.util.Locale.ROOT);
+      Boolean legacy = null;
+      if ("legacysql".equals(dialect)) {
+        legacy = Boolean.TRUE;
+      } else if ("standardsql".equals(dialect)) {
+        legacy = Boolean.FALSE;
       }
-      msg.append(Joiner.on(TAB).join(schemNames));
-      msg.append(NEWLINE);
-      for (TableRow row : response.getRows()) {
-        List<String> fieldValues = new ArrayList<String>();
-        for (TableCell field : row.getF()) {
-          fieldValues.add(field.getV().toString());
-        }
-        msg.append(Joiner.on(TAB).join(fieldValues));
-        msg.append(NEWLINE);
+      QueryJobConfiguration configuration = QueryJobConfiguration.newBuilder(sql)
+          .setUseLegacySql(legacy)
+          .setJobTimeoutMs(Long.parseLong(getProperty(WAIT_TIME, "60000")))
+          .build();
+      JobId.Builder id = JobId.newBuilder().setProject(getProperty(PROJECT_ID)).setRandomJob();
+      String region = getProperty(REGION, "");
+      if (!region.isEmpty()) {
+        id.setLocation(region);
       }
-      return msg.toString();
-    } catch (NullPointerException ex) {
-      throw new NullPointerException("SQL Execution returned an error!");
+      job = service.create(JobInfo.newBuilder(configuration).setJobId(id.build()).build());
+      currentJob = job;
+      TableResult result = job.getQueryResults();
+      return formatResult(result, Long.parseLong(getProperty(MAX_ROWS, "1000")));
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      return new InterpreterResult(InterpreterResult.Code.ERROR, "BigQuery query interrupted");
+    } catch (Exception e) {
+      LOGGER.error("BigQuery query failed", e);
+      return new InterpreterResult(InterpreterResult.Code.ERROR,
+          e.getMessage() == null ? e.toString() : e.getMessage());
+    } finally {
+      if (currentJob == job) {
+        currentJob = null;
+      }
     }
   }
 
-  //Function to poll a job for completion. Future use
-  public static Job pollJob(final Bigquery.Jobs.Get request, final long interval) 
-      throws IOException, InterruptedException {
-    Job job = request.execute();
-    while (!job.getStatus().getState().equals("DONE")) {
-      System.out.println("Job is " 
-          + job.getStatus().getState() 
-          + " waiting " + interval + " milliseconds...");
-      Thread.sleep(interval);
-      job = request.execute();
+  static InterpreterResult formatResult(TableResult result, long maxRows) {
+    if (result.getSchema() == null) {
+      return new InterpreterResult(InterpreterResult.Code.SUCCESS, "Query completed.");
     }
-    return job;
-  }
-
-  //Function to page through the results of an arbitrary bigQuery request
-  public static <T extends GenericJson> Iterator<T> getPages(
-      final BigqueryRequest<T> requestTemplate) {
-    class PageIterator implements Iterator<T> {
-      private BigqueryRequest<T> request;
-      private boolean hasNext = true;
-      PageIterator(final BigqueryRequest<T> requestTemplate) {
-        this.request = requestTemplate;
-      }
-      public boolean hasNext() {
-        return hasNext;
-      }
-      public T next() {
-        if (!hasNext) {
-          throw new NoSuchElementException();
-        }
-        try {
-          T response = request.execute();
-          if (response.containsKey("pageToken")) {
-            request = request.set("pageToken", response.get("pageToken"));
-          } else {
-            hasNext = false;
-          }
-          return response;
-        } catch (IOException e) {
-          return null;
-        }
-      }
-
-      public void remove() {
-        this.next();
-      }
-    }
-
-    return new PageIterator(requestTemplate);
-  }
-  
-  //Function to call bigQuery to run SQL and return results to the Interpreter for output
-  private InterpreterResult executeSql(String sql) {
-    int counter = 0;
-    StringBuilder finalmessage = null;
-    finalmessage = new StringBuilder("%table ");
-    String projId = getProperty(PROJECT_ID);
-    long wTime = Long.parseLong(getProperty(WAIT_TIME));
-    long maxRows = Long.parseLong(getProperty(MAX_ROWS));
-    String sqlDialect = getProperty(SQL_DIALECT, "").toLowerCase();
-    String region = getProperty(REGION, null);
-    Boolean useLegacySql;
-    switch (sqlDialect) {
-      case "standardsql":
-        useLegacySql = false;
+    StringBuilder output = new StringBuilder("%table ");
+    output.append(result.getSchema().getFields().stream()
+        .map(field -> field.getName()).collect(Collectors.joining("\t"))).append('\n');
+    long rows = 0;
+    for (FieldValueList row : result.iterateAll()) {
+      if (rows++ >= maxRows) {
         break;
-      case "legacysql":
-        useLegacySql = true;
-        break;
-      default:
-        // Enable query prefix like '#standardSQL' if specified
-        useLegacySql = null;
-    }
-    Iterator<GetQueryResultsResponse> pages;
-    try {
-      pages = run(sql, projId, wTime, maxRows, useLegacySql, region);
-    } catch (IOException ex) {
-      LOGGER.error(ex.getMessage());
-      return new InterpreterResult(Code.ERROR, ex.getMessage());
-    }
-    try {
-      while (pages.hasNext()) {
-        finalmessage.append(printRows(pages.next()));
       }
-      return new InterpreterResult(Code.SUCCESS, finalmessage.toString());
-    } catch (NullPointerException ex) {
-      return new InterpreterResult(Code.ERROR, ex.getMessage());
+      for (int i = 0; i < row.size(); i++) {
+        if (i > 0) {
+          output.append('\t');
+        }
+        FieldValue value = row.get(i);
+        output.append(value.isNull() ? "null" : value.getValue().toString());
+      }
+      output.append('\n');
     }
+    return new InterpreterResult(InterpreterResult.Code.SUCCESS, output.toString());
   }
 
-  //Function to run the SQL on bigQuery service
-  public static Iterator<GetQueryResultsResponse> run(final String queryString,
-      final String projId, final long wTime, final long maxRows,
-      Boolean useLegacySql, final String region)
-        throws IOException {
-    try {
-      LOGGER.info("Use legacy sql: {}", useLegacySql);
-      QueryResponse query;
-      query = service
-          .jobs()
-          .query(
-              projId,
-              new QueryRequest().setTimeoutMs(wTime)
-                  .setUseLegacySql(useLegacySql).setQuery(queryString)
-                  .setMaxResults(maxRows)).execute();
-      jobId = query.getJobReference().getJobId();
-      projectId = query.getJobReference().getProjectId();
-      GetQueryResults getRequest = service.jobs().getQueryResults(
-          projectId,
-          jobId);
-      if (StringUtils.isNotBlank(region)) {
-        getRequest = getRequest.setLocation(region);
-      }
-      return getPages(getRequest);
-    } catch (IOException ex) {
-      throw ex;
+  @Override
+  public void cancel(InterpreterContext context) {
+    Job job = currentJob;
+    if (job != null) {
+      job.cancel();
     }
   }
 
   @Override
   public void close() {
-    LOGGER.info("Close bqsql connection!");
-
+    cancel(null);
+    currentJob = null;
     service = null;
-  }
-
-  @Override
-  public InterpreterResult interpret(String sql, InterpreterContext contextInterpreter) {
-    LOGGER.info("Run SQL command '{}'", sql);
-    return executeSql(sql);
-  }
-
-  @Override
-  public Scheduler getScheduler() {
-    return SchedulerFactory.singleton().createOrGetFIFOScheduler(
-        BigQueryInterpreter.class.getName() + this.hashCode());
   }
 
   @Override
@@ -313,31 +152,19 @@ public class BigQueryInterpreter extends Interpreter {
   }
 
   @Override
+  public Scheduler getScheduler() {
+    return SchedulerFactory.singleton().createOrGetFIFOScheduler(
+        BigQueryInterpreter.class.getName() + hashCode());
+  }
+
+  @Override
   public int getProgress(InterpreterContext context) {
     return 0;
   }
 
   @Override
-  public void cancel(InterpreterContext context) {
-    LOGGER.info("Trying to Cancel current query statement.");
-
-    if (service != null && jobId != null && projectId != null) {
-      try {
-        Bigquery.Jobs.Cancel request = service.jobs().cancel(projectId, jobId);
-        JobCancelResponse response = request.execute();
-        jobId = null;
-        LOGGER.info("Query Execution cancelled");
-      } catch (IOException ex) {
-        LOGGER.error("Could not cancel the SQL execution");
-      }
-    } else {
-      LOGGER.info("Query Execution was already cancelled");
-    }
-  }
-
-  @Override
   public List<InterpreterCompletion> completion(String buf, int cursor,
-      InterpreterContext interpreterContext) {
-    return NO_COMPLETION;
+      InterpreterContext context) {
+    return Collections.emptyList();
   }
 }
