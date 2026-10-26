@@ -19,6 +19,7 @@
 package org.apache.zeppelin.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -31,7 +32,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
+import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.mockito.ArgumentCaptor;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -43,8 +49,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import org.apache.commons.lang3.StringUtils;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.interpreter.Interpreter;
 import org.apache.zeppelin.interpreter.Interpreter.FormType;
@@ -71,14 +75,6 @@ import org.apache.zeppelin.search.SearchService;
 import org.apache.zeppelin.storage.ConfigStorage;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.apache.zeppelin.user.Credentials;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.junit.jupiter.api.TestInfo;
-
-
-import com.google.gson.Gson;
 
 class NotebookServiceTest {
 
@@ -169,6 +165,25 @@ class NotebookServiceTest {
       confDir.delete();
     }
     searchService.close();
+  }
+
+  @Test
+  void editingParagraphUpdatesSearchWithoutServerRestart() throws Exception {
+    String noteId = notebookService.createNote("search-edit", "python", false, context, callback);
+    Paragraph p = notebookService.insertParagraph(noteId, 0, new HashMap<>(), context, callback);
+    notebookService.updateParagraph(noteId, p.getId(), "", "beforeeditmarker",
+        new HashMap<>(), new HashMap<>(), context, callback);
+    for (int i = 0; i < 100 && searchService.query("beforeeditmarker").isEmpty(); i++) {
+      Thread.sleep(50);
+    }
+    assertFalse(searchService.query("beforeeditmarker").isEmpty());
+    notebookService.updateParagraph(noteId, p.getId(), "", "aftereditmarker",
+        new HashMap<>(), new HashMap<>(), context, callback);
+    for (int i = 0; i < 100 && searchService.query("aftereditmarker").isEmpty(); i++) {
+      Thread.sleep(50);
+    }
+    assertFalse(searchService.query("aftereditmarker").isEmpty());
+    assertTrue(searchService.query("beforeeditmarker").isEmpty());
   }
 
   @Test

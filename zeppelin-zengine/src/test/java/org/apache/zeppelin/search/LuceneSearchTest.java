@@ -22,16 +22,15 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-
-
+import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.commons.io.FileUtils;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.interpreter.InterpreterFactory;
 import org.apache.zeppelin.interpreter.InterpreterSetting;
@@ -45,9 +44,6 @@ import org.apache.zeppelin.notebook.repo.InMemoryNotebookRepo;
 import org.apache.zeppelin.notebook.repo.NotebookRepo;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.apache.zeppelin.user.Credentials;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 class LuceneSearchTest {
 
@@ -88,6 +84,16 @@ class LuceneSearchTest {
       Thread.sleep(1000);
     }
     Thread.sleep(1000);
+  }
+
+  @Test
+  void codeSearchSplitsDotsAndPreservesUnderscoresAndDigits() throws Exception {
+    newNoteWithParagraph("Code123", "package.auditfunction identifier_with_underscores23");
+    drainSearchEvents();
+    assertEquals(1, noteSearchService.query("auditfunction").size());
+    assertEquals(1, noteSearchService.query("identifier_with_underscores23").size());
+    assertEquals(1, noteSearchService.query("Code123").size());
+    assertTrue(noteSearchService.query("underscores23").isEmpty());
   }
 
   @Test

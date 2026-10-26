@@ -17,21 +17,12 @@
 package org.apache.zeppelin.search;
 
 import com.google.common.collect.ImmutableMap;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import javax.annotation.PreDestroy;
-import jakarta.inject.Inject;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.LowerCaseFilter;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.util.CharTokenizer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LongPoint;
@@ -57,12 +48,22 @@ import org.apache.lucene.search.highlight.TokenSources;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import javax.annotation.PreDestroy;
+import jakarta.inject.Inject;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.notebook.Note;
 import org.apache.zeppelin.notebook.Notebook;
 import org.apache.zeppelin.notebook.Paragraph;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Search (both, indexing and query) the notebooks using Lucene. Query is thread-safe, as creates
@@ -76,6 +77,20 @@ public class LuceneSearch extends SearchService {
   private static final String SEARCH_FIELD_TITLE = "header";
   private static final String PARAGRAPH = "paragraph";
   private static final String ID_FIELD = "id";
+
+  /** Split dotted code names while keeping identifiers, digits and underscores together. */
+  private static class CodeAnalyzer extends Analyzer {
+    @Override
+    protected TokenStreamComponents createComponents(String fieldName) {
+      Tokenizer tokenizer = new CharTokenizer() {
+        @Override
+        protected boolean isTokenChar(int c) {
+          return Character.isLetterOrDigit(c) || c == '_';
+        }
+      };
+      return new TokenStreamComponents(tokenizer, new LowerCaseFilter(tokenizer));
+    }
+  }
 
   private final Directory indexDirectory;
   private final IndexWriter indexWriter;
@@ -96,7 +111,7 @@ public class LuceneSearch extends SearchService {
     } else {
       this.indexDirectory = new ByteBuffersDirectory();
     }
-    final Analyzer analyzer = new StandardAnalyzer();
+    final Analyzer analyzer = new CodeAnalyzer();
     final IndexWriterConfig indexWriterConfig = new IndexWriterConfig(analyzer);
     try {
       this.indexWriter = new IndexWriter(indexDirectory, indexWriterConfig);
@@ -121,7 +136,7 @@ public class LuceneSearch extends SearchService {
     List<Map<String, String>> result = Collections.emptyList();
     try (IndexReader indexReader = DirectoryReader.open(indexDirectory)) {
       IndexSearcher indexSearcher = new IndexSearcher(indexReader);
-      Analyzer analyzer = new StandardAnalyzer();
+      Analyzer analyzer = new CodeAnalyzer();
       MultiFieldQueryParser parser =
           new MultiFieldQueryParser(new String[] {SEARCH_FIELD_TEXT, SEARCH_FIELD_TITLE}, analyzer);
 
