@@ -17,6 +17,11 @@
 
 package org.apache.zeppelin.notebook;
 
+import com.google.common.annotations.VisibleForTesting;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -28,9 +33,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.zeppelin.common.JsonSerializable;
 import org.apache.zeppelin.display.AngularObject;
 import org.apache.zeppelin.display.AngularObjectRegistry;
@@ -57,10 +59,6 @@ import org.apache.zeppelin.scheduler.JobWithProgressPoller;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.apache.zeppelin.user.Credentials;
 import org.apache.zeppelin.user.UserCredentials;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Paragraph is a representation of an execution unit.
@@ -195,6 +193,11 @@ public class Paragraph extends JobWithProgressPoller<InterpreterResult> implemen
 
   public AuthenticationInfo getAuthenticationInfo() {
     return subject;
+  }
+
+  // Reloading a note must reset credentials without erasing its displayed last executor.
+  void resetAuthenticationInfoForLoad() {
+    this.subject = AuthenticationInfo.ANONYMOUS;
   }
 
   public void setAuthenticationInfo(AuthenticationInfo subject) {

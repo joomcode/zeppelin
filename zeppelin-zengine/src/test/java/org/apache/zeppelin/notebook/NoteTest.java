@@ -17,6 +17,24 @@
 
 package org.apache.zeppelin.notebook;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.only;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.display.AngularObject;
 import org.apache.zeppelin.display.ui.TextBox;
@@ -31,26 +49,6 @@ import org.apache.zeppelin.notebook.repo.NotebookRepo;
 import org.apache.zeppelin.scheduler.Scheduler;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.apache.zeppelin.user.Credentials;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.only;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 
 class NoteTest {
@@ -90,6 +88,16 @@ class NoteTest {
     scheduler = mock(Scheduler.class);
     interpreterFactory = mock(InterpreterFactory.class);
     interpreterSettingManager = mock(InterpreterSettingManager.class);
+  }
+
+  @Test
+  void loadingPreservesLastExecutorButResetsAuthentication() {
+    Note note = new Note("test", "test", interpreterFactory, interpreterSettingManager,
+        paragraphJobListener, credentials, noteEventListener, zConf, noteParser);
+    Paragraph paragraph = note.addNewParagraph(new AuthenticationInfo("last-executor"));
+    note.postProcessParagraphs();
+    assertEquals("last-executor", paragraph.getUser());
+    assertEquals(AuthenticationInfo.ANONYMOUS, paragraph.getAuthenticationInfo());
   }
 
   @Test
