@@ -62,8 +62,11 @@ export class ElasticInputComponent implements OnChanges {
         const width = this.pElement.nativeElement.getBoundingClientRect().width;
         this.renderer.setStyle(this.elasticElement.nativeElement, 'width', `${width}px`);
         setTimeout(() => {
-          this.inputElement.nativeElement.focus();
-          this.renderer.setStyle(this.inputElement.nativeElement, 'width', `${width}px`);
+          // A server refresh or Enter can remove the input before this timer runs.
+          if (this.showEditor && this.inputElement) {
+            this.inputElement.nativeElement.focus();
+            this.renderer.setStyle(this.inputElement.nativeElement, 'width', `${width}px`);
+          }
         });
       }
     }
