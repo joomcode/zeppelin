@@ -84,7 +84,20 @@ export class NotebookComponent extends MessageListenersManager implements OnInit
     if (isNil(note)) {
       this.router.navigate(['/']).then();
     } else {
-      this.removeParagraphFromNgZ();
+      const restoringNote = this.note?.id === note.id && !this.revisionView;
+      if (restoringNote) {
+        // Reuse paragraph components and their pending edits on reconnect.
+        note.paragraphs = note.paragraphs.map(paragraph => {
+          const component = this.listOfNotebookParagraphComponent?.find(p => p.paragraph?.id === paragraph.id);
+          if (component) {
+            component.paragraphData({ paragraph });
+            return component.paragraph;
+          }
+          return paragraph;
+        });
+      } else {
+        this.removeParagraphFromNgZ();
+      }
       this.note = note;
       const { paragraphId } = this.activatedRoute.snapshot.params;
       if (paragraphId) {
@@ -105,9 +118,16 @@ export class NotebookComponent extends MessageListenersManager implements OnInit
           }
         });
       }
-      this.titleService.setTitle(`${this.note?.name} - Zeppelin`);
+      this.titleService.setTitle(`${this.note?.path || this.note?.name} - Zeppelin`);
       this.themeService.updateMonacoTheme();
       this.cdr.markForCheck();
+      if (restoringNote) {
+        setTimeout(() => {
+          if (this.note?.id === note.id && this.messageService.connectedStatus) {
+            this.saveNote();
+          }
+        });
+      }
     }
   }
 
@@ -460,6 +480,10 @@ export class NotebookComponent extends MessageListenersManager implements OnInit
           // TODO(hsuanxyz) scroll to current paragraph
         }
       });
+  }
+
+  trackParagraph(_: number, paragraph: { id: string }): string {
+    return paragraph.id;
   }
 
   removeParagraphFromNgZ(): void {

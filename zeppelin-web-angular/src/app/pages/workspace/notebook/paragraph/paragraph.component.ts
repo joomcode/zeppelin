@@ -142,7 +142,7 @@ export class NotebookParagraphComponent
   }
 
   sendPatch() {
-    if (!this.dirtyText) {
+    if (this.dirtyText === undefined) {
       throw new Error('dirtyText is required');
     }
     this.originalText = this.originalText ? this.originalText : '';
@@ -190,13 +190,15 @@ export class NotebookParagraphComponent
   }
 
   saveParagraph() {
-    const dirtyText = this.paragraph.text;
+    const dirtyText = this.paragraph?.text;
     if (dirtyText === undefined || dirtyText === this.originalText) {
       return;
     }
-    this.commitParagraph();
-    this.originalText = dirtyText;
-    this.dirtyText = undefined;
+    this.dirtyText = dirtyText;
+    if (this.messageService.connectedStatus) {
+      this.commitParagraph();
+    }
+    // Keep the edit pending until a server message acknowledges its exact text.
     this.cdr.markForCheck();
   }
 
@@ -317,7 +319,7 @@ export class NotebookParagraphComponent
     this.messageService.copyParagraph(
       newIndex,
       this.paragraph.title,
-      newText || this.paragraph.text,
+      newText ?? this.paragraph.text,
       config,
       this.paragraph.settings.params
     );
@@ -327,8 +329,7 @@ export class NotebookParagraphComponent
     if (!this.paragraph.config.editorSetting) {
       throw new Error('editorSetting is required');
     }
-    this.originalText = text;
-    this.dirtyText = undefined;
+    this.dirtyText = text;
 
     if (this.paragraph.config.editorSetting.editOnDblClick) {
       this.paragraph.config.editorHide = true;
@@ -345,7 +346,10 @@ export class NotebookParagraphComponent
   }
 
   runParagraph(paragraphText?: string, propagated: boolean = false) {
-    const text = paragraphText || this.paragraph.text;
+    const text = paragraphText ?? this.paragraph.text;
+    if (!this.messageService.connectedStatus) {
+      return;
+    }
     if (text && !this.isParagraphRunning) {
       const magic = SpellResult.extractMagic(text);
 

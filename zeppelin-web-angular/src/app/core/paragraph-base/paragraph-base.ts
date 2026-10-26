@@ -238,22 +238,24 @@ export abstract class ParagraphBase extends MessageListenersManager {
     if (!this.paragraph) {
       throw new Error('paragraph is not defined');
     }
-    if (oldPara.text !== newPara.text) {
-      if (this.dirtyText) {
-        // check if editor has local update
-        if (this.dirtyText === newPara.text) {
-          // when local update is the same from remote, clear local update
-          this.paragraph.text = newPara.text;
-          this.dirtyText = undefined;
-          this.originalText = newPara.text;
-        } else {
-          // if there're local update, keep it.
-          this.paragraph.text = newPara.text;
-        }
+    const serverText = newPara.text ?? '';
+    if (this.dirtyText !== undefined && this.dirtyText !== this.originalText) {
+      if (this.dirtyText === serverText) {
+        // A real server acknowledgement, including an explicitly empty paragraph.
+        this.paragraph.text = serverText;
+        this.originalText = serverText;
+        this.dirtyText = undefined;
       } else {
-        this.paragraph.text = newPara.text;
-        this.originalText = newPara.text;
+        // A delayed NOTE/status broadcast must never replace unacknowledged local text.
+        if (serverText !== this.originalText) {
+          console.warn('Concurrent paragraph edit; preserving local text', this.paragraph.id);
+        }
+        this.paragraph.text = this.dirtyText;
       }
+    } else {
+      this.paragraph.text = serverText;
+      this.originalText = serverText;
+      this.dirtyText = undefined;
     }
     this.cdr.markForCheck();
   }
