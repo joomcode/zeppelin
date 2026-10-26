@@ -57,11 +57,12 @@ export function MessageListener<K extends keyof MessageReceiveDataTypeMap>(op: K
       );
     };
 
-    if (!target.__zeppelinMessageListeners__) {
-      target.__zeppelinMessageListeners__ = [fn];
-    } else {
-      target.__zeppelinMessageListeners__.push(fn);
+    // A subclass must not append its handlers to the parent's inherited array.
+    // Otherwise published-paragraph NOTE handlers also run on normal editor instances.
+    if (!Object.prototype.hasOwnProperty.call(target, '__zeppelinMessageListeners__')) {
+      target.__zeppelinMessageListeners__ = [...(target.__zeppelinMessageListeners__ ?? [])];
     }
+    target.__zeppelinMessageListeners__!.push(fn);
 
     return descriptor;
   };
