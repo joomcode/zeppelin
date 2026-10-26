@@ -22,6 +22,8 @@ Changes are adapted by behavior; obsolete implementation details are not copied 
 | `63cbcde6d`, `fd9a35155`, `1bdeae362`, `250c5c0ea`, `6da3df498` | Renew ticket before reconnect; inline login or SSO in another tab preserves the current page | Playwright re-login and persistence control; real restart series recorded separately |
 | Conflict diagnostics series (`b935490c7`, `980de75a6`, `a8c0fe763`, `ffdeec4ab`, `ea0e707c7`) | Warn on concurrent text changes without dumping notebook contents | Two-tab audit; no claim of automatic conflict resolution. The old server checker only logged conflicts. |
 | `7f91e4a2f`, `8b388c0d6`, `8967ef57f`, `a1436ac66`, `2675eeb95`, `11941c112` | Full-path titles, filtering, renaming and clone defaults in active Angular UI | Path/clone audit and deployment smoke |
+| New observed lifecycle race | Retire interpreter groups by strict object identity; a late unregister must not remove a replacement with the same ID | Failing deterministic control, ManagedInterpreterGroupTest, real pod-loss series |
+| New observed navigation defect | Fetch the selected notebook when Angular reuses the component after clone or a route change | Actual clone -> renamed copy browser regression |
 | New observed UI defect | Copy inherited websocket listener registries; published-paragraph NOTE handler must not mutate normal editor state | Same delayed NOTE scenarios failed before registry isolation and passed after it |
 | Existing Yahoo remote-user extension | Relocate only javax.servlet to jakarta.servlet; keep deployed filter/realm behavior | Artifact namespace assertion and GCP header-based authentication smoke |
 
@@ -35,7 +37,8 @@ Changes are adapted by behavior; obsolete implementation details are not copied 
   does not rule out every possible failure.
 - `e88036cf3` comparator and `52750c4a3` null dynamic-form mechanisms are already
   present upstream. Trino driver property handling from `1ae6438bc` is present in
-  the 0.12.1 JDBC interpreter. Do not overlay an old 0.9 JDBC interpreter JAR.
+  the 0.12.1 JDBC interpreter. The human confirmed Trino is no longer needed;
+  remove its obsolete endpoint from the isolated deployment. Do not overlay an old 0.9 JDBC JAR.
 - `870683d99` collaborative-status workaround is not copied: upstream guards this
   path when collaborative mode is disabled, matching the deployed setting. A full
   collaborative-mode stress test remains separate.

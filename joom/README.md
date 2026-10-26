@@ -22,12 +22,21 @@ The upstream baseline contains existing Checkstyle violations. They are counted
 separately; new errors on added lines fail `check_changed_style.py`.
 
 Review `joom/build-context/overlay/joom-build.json` (source revision and every
-artifact SHA256), then submit the two amd64 image targets:
+artifact SHA256), then build and push the two amd64 targets. Local Docker is the
+verified path for this pilot; the default Cloud Build compute account cannot read
+uploaded sources, and no additional IAM grant was added.
 
 ```sh
-gcloud builds submit joom/build-context --project=gcp-joomanalytics-platform \
-  --config=joom/build-context/cloudbuild.json
+revision=$(git rev-parse HEAD)
+image=europe-west4-docker.pkg.dev/gcp-joomanalytics-platform/images/zeppelin:0.12.1-joom-1
+docker buildx build --platform linux/amd64 --target server \
+  --build-arg SOURCE_REVISION="$revision" --tag "$image" --push joom/build-context
+docker buildx build --platform linux/amd64 --target interpreter \
+  --build-arg SOURCE_REVISION="$revision" --tag "$image-interpreter" --push joom/build-context
 ```
+
+A Cloud Build configuration is also generated for an environment with an already
+configured build identity and source/log/registry access.
 
 The explicit build context contains JAR/WAR outputs and metadata only. It excludes
 notebooks, live configuration, cloud credentials, browser state and test traces.
