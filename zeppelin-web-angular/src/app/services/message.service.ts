@@ -22,6 +22,7 @@ import {
   MessageSendDataTypeMap,
   Note,
   NoteConfig,
+  OP,
   ParagraphConfig,
   ParagraphParams,
   PersonalizedMode,
@@ -31,6 +32,8 @@ import {
   WebSocketMessage
 } from '@zeppelin/sdk';
 
+import { NzModalService } from 'ng-zorro-antd/modal';
+import { SessionLoginComponent } from '../share/session-login/session-login.component';
 import { BaseUrlService } from './base-url.service';
 import { TicketService } from './ticket.service';
 
@@ -38,20 +41,71 @@ import { TicketService } from './ticket.service';
   providedIn: 'root'
 })
 export class MessageService extends Message implements OnDestroy {
+  private restoringSession = false;
+  private sessionDialogOpen = false;
+  private reconnectTimer?: ReturnType<typeof setTimeout>;
+
+  connect(): void {
+    if (this.restoringSession || this.sessionDialogOpen) {
+      return;
+    }
+    clearTimeout(this.reconnectTimer);
+    this.restoringSession = true;
+    this.connectedStatus = false;
+    this.connectedStatus$.next(false);
+    // Refresh before opening the socket: notebook subscribers must not send a stale ticket.
+    this.ticketService.getTicket(true).subscribe({
+      next: () => {
+        this.restoringSession = false;
+        super.setTicket(this.ticketService.originTicket);
+        super.connect();
+      },
+      error: error => {
+        this.restoringSession = false;
+        if (error.status === 401 || error.status === 403) {
+          this.sessionDialogOpen = true;
+          const modal = this.nzModalService.create({
+            nzTitle: 'Session expired',
+            nzContent: SessionLoginComponent,
+            nzComponentParams: { authUrl: error.headers?.get('Location') ?? '' },
+            nzFooter: null,
+            nzClosable: false,
+            nzMaskClosable: false,
+            nzKeyboard: false
+          });
+          modal.afterClose.subscribe(() => {
+            this.sessionDialogOpen = false;
+            this.connect();
+          });
+        } else {
+          this.reconnectTimer = setTimeout(() => this.connect(), 4000);
+        }
+      }
+    });
+  }
+
   constructor(
     private baseUrlService: BaseUrlService,
     private ticketService: TicketService,
+    private nzModalService: NzModalService,
     @Optional() @Inject(MESSAGE_INTERCEPTOR) private messageInterceptor: MessageInterceptor
   ) {
     super();
   }
 
   interceptReceived(data: WebSocketMessage<MessageReceiveDataTypeMap>): WebSocketMessage<MessageReceiveDataTypeMap> {
+    if (data.op === OP.SESSION_LOGOUT) {
+      this.connect();
+    }
     return this.messageInterceptor ? this.messageInterceptor.received(data) : super.interceptReceived(data);
   }
 
   bootstrap(): void {
-    super.bootstrap(this.ticketService.originTicket, this.baseUrlService.getWebsocketUrl());
+    // WorkspaceGuard has just fetched this ticket. Create the subject synchronously so
+    // initial component requests can queue before the socket opens.
+    super.setTicket(this.ticketService.originTicket);
+    super.setWsUrl(this.baseUrlService.getWebsocketUrl());
+    super.connect();
   }
 
   ping() {
@@ -83,6 +137,7 @@ export class MessageService extends Message implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    clearTimeout(this.reconnectTimer);
     super.destroy();
   }
 

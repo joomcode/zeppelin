@@ -10,7 +10,7 @@
  * limitations under the License.
  */
 
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { forkJoin, BehaviorSubject, Subject } from 'rxjs';
@@ -38,14 +38,22 @@ export class TicketService {
     this.configuration = conf.configurations;
   }
 
-  getTicket() {
+  getTicket(preservePage = false) {
     return forkJoin([
-      this.httpClient.get<ITicket>(`${this.baseUrlService.getRestApiBase()}/security/ticket`),
+      this.httpClient.get<ITicket>(`${this.baseUrlService.getRestApiBase()}/security/ticket`, {
+        headers: preservePage ? { 'X-Zeppelin-Reconnect': 'true' } : {}
+      }),
       this.getZeppelinVersion()
     ]).pipe(
       tap(data => {
         const [ticket, version] = data;
         this.version = version;
+        if (preservePage && ticket.redirectURL) {
+          throw new HttpErrorResponse({
+            status: 401,
+            headers: new HttpHeaders({ Location: ticket.redirectURL })
+          });
+        }
         this.setTicket(ticket);
       })
     );
@@ -116,6 +124,10 @@ export class TicketService {
           }
         )
       );
+  }
+
+  get documentationVersion() {
+    return this.version?.split('-')[0];
   }
 
   getZeppelinVersion() {

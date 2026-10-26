@@ -41,10 +41,14 @@ export class AppHttpInterceptor implements HttpInterceptor {
       }),
       catchError(event => {
         const redirect = event.headers.get('Location');
-        if (event.status === 401 && !isNil(redirect)) {
+        if (event.status === 401 && !isNil(redirect) && !httpRequest.headers.has('X-Zeppelin-Reconnect')) {
           // Handle page redirect
           window.location.href = redirect;
-        } else if (event.status === 405 && !event.url.contains('logout')) {
+        } else if (
+          event.status === 405 &&
+          !event.url.includes('logout') &&
+          !httpRequest.headers.has('X-Zeppelin-Reconnect')
+        ) {
           this.ticketService.logout().subscribe();
         }
         return throwError(event);

@@ -115,6 +115,7 @@ export interface MessageReceiveDataTypeMap {
   [OP.PARAGRAPH_STATUS]: ParagraphStatus;
   [OP.PARAGRAPH_MOVED]: ParagraphMoved;
   [OP.AUTH_INFO]: AuthInfo;
+  [OP.SESSION_LOGOUT]: { info: string };
   [OP.NOTE_UPDATED]: NoteUpdated;
   [OP.ANGULAR_OBJECT_UPDATE]: AngularObjectUpdate;
   [OP.ANGULAR_OBJECT_REMOVE]: AngularObjectRemove;
