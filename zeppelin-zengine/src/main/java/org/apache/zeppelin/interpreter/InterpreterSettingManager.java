@@ -698,6 +698,12 @@ public class InterpreterSettingManager implements NoteEventListener {
     }
   }
 
+  void removeInterpreterGroup(InterpreterGroup group) {
+    for (InterpreterSetting setting : interpreterSettings.values()) {
+      setting.removeInterpreterGroup(group);
+    }
+  }
+
   //TODO(zjffdu) move Resource related api to ResourceManager
   public ResourceSet getAllResources() {
     return getAllResourcesExcept(null);

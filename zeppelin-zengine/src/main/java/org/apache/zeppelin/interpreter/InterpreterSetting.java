@@ -476,6 +476,19 @@ public class InterpreterSetting {
     }
   }
 
+  /** Remove only this instance; a delayed close must not retire its replacement. */
+  void removeInterpreterGroup(InterpreterGroup group) {
+    try {
+      interpreterGroupWriteLock.lock();
+      // InterpreterGroup equality uses the ID, so Map.remove(key, value) is insufficient.
+      if (this.interpreterGroups.get(group.getId()) == group) {
+        this.interpreterGroups.remove(group.getId());
+      }
+    } finally {
+      interpreterGroupWriteLock.unlock();
+    }
+  }
+
   public ManagedInterpreterGroup getInterpreterGroup(String user, String noteId) {
     return getInterpreterGroup(getExecutionContext(user, noteId));
   }
@@ -534,7 +547,7 @@ public class InterpreterSetting {
       String sessionId = getInterpreterSessionId(executionContext);
       interpreterGroup.close(sessionId);
       if (interpreterGroup.isEmpty()) {
-        interpreterGroups.remove(interpreterGroup.getId());
+        removeInterpreterGroup(interpreterGroup);
       }
     }
   }

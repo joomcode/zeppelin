@@ -18,6 +18,7 @@
 package org.apache.zeppelin.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import org.eclipse.aether.RepositoryException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -77,6 +78,19 @@ class ManagedInterpreterGroupTest {
     org.mockito.Mockito.verify(first).stop();
     org.junit.jupiter.api.Assertions.assertSame(second,
         group.getOrCreateInterpreterProcess("user", new java.util.Properties()));
+  }
+
+  @Test
+  void closingRetiredGroupDoesNotRemoveItsReplacement() {
+    ExecutionContext context = new ExecutionContext();
+    context.setInterpreterGroupId("reused-group");
+    ManagedInterpreterGroup retired = interpreterSetting.getOrCreateInterpreterGroup(context);
+    interpreterSetting.removeInterpreterGroup(retired.getId());
+    ManagedInterpreterGroup replacement =
+        interpreterSetting.getOrCreateInterpreterGroup(context);
+    // A delayed unregister closes an old object after a new group has reused its ID.
+    retired.close("retired-session");
+    assertSame(replacement, interpreterSetting.getInterpreterGroup(context));
   }
 
   @Test
