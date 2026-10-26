@@ -96,6 +96,8 @@ class NotebookServiceTest {
   void setUp(TestInfo testInfo) throws Exception {
     notebookDir = Files.createTempDirectory("notebookDir").toAbsolutePath().toFile();
     ZeppelinConfiguration zConf = ZeppelinConfiguration.load();
+    // A shared disk index retains markers from earlier test runs.
+    zConf.setProperty(ZeppelinConfiguration.ConfVars.ZEPPELIN_SEARCH_USE_DISK.getVarName(), "false");
     zConf.setProperty(ZeppelinConfiguration.ConfVars.ZEPPELIN_NOTEBOOK_DIR.getVarName(),
         notebookDir.getAbsolutePath());
     // enable cron for testNoteUpdate method
