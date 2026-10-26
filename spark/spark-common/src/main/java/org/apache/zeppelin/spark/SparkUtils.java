@@ -18,9 +18,9 @@
 package org.apache.zeppelin.spark;
 
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.util.VersionInfo;
 import org.apache.hadoop.util.VersionUtil;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.spark.SparkContext;
 import org.apache.spark.scheduler.SparkListener;
 import org.apache.spark.scheduler.SparkListenerJobStart;
@@ -29,19 +29,18 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.expressions.GenericRow;
 import org.apache.spark.sql.types.StructType;
-import org.apache.zeppelin.interpreter.InterpreterContext;
-import org.apache.zeppelin.interpreter.ResultMessages;
-import org.apache.zeppelin.interpreter.SingleRowInterpreterResult;
-import org.apache.zeppelin.tabledata.TableDataUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import org.apache.zeppelin.interpreter.InterpreterContext;
+import org.apache.zeppelin.interpreter.ResultMessages;
+import org.apache.zeppelin.interpreter.SingleRowInterpreterResult;
+import org.apache.zeppelin.tabledata.TableDataUtils;
 
 /**
  * This is abstract class for anything that is api incompatible between spark1 and spark2. It will
@@ -80,7 +79,11 @@ public class SparkUtils {
 
         if (sc.getConf().getBoolean("spark.ui.enabled", true) &&
             !Boolean.parseBoolean(properties.getProperty("zeppelin.spark.ui.hidden", "false"))) {
-          buildSparkJobUrl(master, sparkWebUrl, jobStart.jobId(), jobStart.properties(), context);
+          try {
+            buildSparkJobUrl(master, sparkWebUrl, jobStart.jobId(), jobStart.properties(), context);
+          } catch (Exception e) {
+            LOGGER.debug("Unable to publish optional Spark job link", e);
+          }
         }
       }
     });
@@ -166,6 +169,12 @@ public class SparkUtils {
                                   int jobId,
                                   Properties jobProperties,
                                   InterpreterContext context) {
+    // Delta and other Spark components submit jobs outside Zeppelin paragraph execution.
+    String group = jobProperties == null ? null : jobProperties.getProperty("spark.jobGroup.id");
+    if (group == null || !group.startsWith("zeppelin|") || group.split("\\|", -1).length != 4
+        || context == null || sparkWebUrl == null) {
+      return;
+    }
     String jobUrl = null;
     if (sparkWebUrl.contains("{jobId}")) {
       jobUrl = sparkWebUrl.replace("{jobId}", jobId + "");

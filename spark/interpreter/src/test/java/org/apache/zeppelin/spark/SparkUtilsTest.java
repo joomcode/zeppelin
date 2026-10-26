@@ -23,19 +23,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
 import org.apache.hadoop.util.VersionInfo;
-import org.apache.zeppelin.interpreter.InterpreterContext;
-import org.apache.zeppelin.interpreter.remote.RemoteInterpreterEventClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import org.apache.zeppelin.interpreter.InterpreterContext;
+import org.apache.zeppelin.interpreter.remote.RemoteInterpreterEventClient;
 
 class SparkUtilsTest {
 
@@ -80,6 +79,21 @@ class SparkUtilsTest {
       when(mockContext.getIntpEventClient()).thenReturn(mockIntpEventClient);
 
       sparkUtils = new SparkUtils(new Properties(), null);
+    }
+
+    @Test
+    void unrelatedJobDoesNotInterruptNextZeppelinJob() {
+      Properties properties = new Properties();
+      properties.setProperty("spark.jobGroup.id", "delta-operation");
+      sparkUtils.buildSparkJobUrl("local", "http://sparkurl", 0, properties, mockContext);
+      sparkUtils.buildSparkJobUrl("local", "http://sparkurl", 1, null, mockContext);
+      properties.setProperty("spark.jobGroup.id", "zeppelin|user1|noteId|paragraphId");
+      sparkUtils.buildSparkJobUrl("local", "http://sparkurl", 2, properties, mockContext);
+      @SuppressWarnings("unchecked")
+      ArgumentCaptor<Map<String, String>> argument = ArgumentCaptor.forClass(HashMap.class);
+      verify(mockIntpEventClient).onParaInfosReceived(argument.capture());
+      assertEquals("noteId", argument.getValue().get("noteId"));
+      assertEquals("paragraphId", argument.getValue().get("paraId"));
     }
 
     @Test
