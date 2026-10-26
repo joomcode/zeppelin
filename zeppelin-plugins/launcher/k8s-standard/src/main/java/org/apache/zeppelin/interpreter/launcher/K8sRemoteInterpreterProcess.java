@@ -18,6 +18,14 @@
 
 package org.apache.zeppelin.interpreter.launcher;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -28,21 +36,7 @@ import java.util.Properties;
 import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.zeppelin.interpreter.remote.RemoteInterpreterManagedProcess;
-import org.apache.zeppelin.interpreter.remote.RemoteInterpreterServer;
-import org.apache.zeppelin.interpreter.remote.RemoteInterpreterUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.hubspot.jinjava.Jinjava;
-
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodStatus;
@@ -50,6 +44,9 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.LocalPortForward;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.dsl.NamespaceListVisitFromServerGetDeleteRecreateWaitApplicable;
+import org.apache.zeppelin.interpreter.remote.RemoteInterpreterManagedProcess;
+import org.apache.zeppelin.interpreter.remote.RemoteInterpreterServer;
+import org.apache.zeppelin.interpreter.remote.RemoteInterpreterUtils;
 
 public class K8sRemoteInterpreterProcess extends RemoteInterpreterManagedProcess {
   private static final Logger LOGGER = LoggerFactory.getLogger(K8sRemoteInterpreterProcess.class);
@@ -512,7 +509,18 @@ public class K8sRemoteInterpreterProcess extends RemoteInterpreterManagedProcess
         LOGGER.error("Unable to create a PortForward", e);
       }
     } else {
-      super.processStarted(port, getInterpreterPodDnsName());
+      String dnsName = getInterpreterPodDnsName();
+      try {
+        DnsReady.await(dnsName, java.net.InetAddress::getByName, Thread::sleep);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        processStopped("Interrupted while resolving interpreter DNS: " + dnsName);
+        return;
+      } catch (java.net.UnknownHostException e) {
+        processStopped("Interpreter DNS is not ready: " + dnsName);
+        return;
+      }
+      super.processStarted(port, dnsName);
     }
     LOGGER.info("Interpreter pod created {}:{}", getHost(), getPort());
     synchronized (started) {
