@@ -35,6 +35,7 @@ export class NodeListComponent extends MessageListenersManager implements OnInit
       .toLowerCase()
       .includes(this.searchValue.toLowerCase());
   nodes: NzTreeNodeOptions[] = [];
+  virtualHeight: string | null = null;
   activatedId?: string;
 
   activeNote(id: string) {
@@ -100,6 +101,8 @@ export class NodeListComponent extends MessageListenersManager implements OnInit
 
   @MessageListener(OP.NOTES_INFO)
   getNotes(data: MessageReceiveDataTypeMap[OP.NOTES_INFO]) {
+    // Large shared repositories can expose thousands of roots; only render the viewport.
+    this.virtualHeight = data.notes.length > 200 ? '60vh' : null;
     this.noteListService.setNotes(data.notes);
     this.nodes = this.noteListService.notes.root.children
       .sort((v1, v2) => this.noteComparator(v1, v2))

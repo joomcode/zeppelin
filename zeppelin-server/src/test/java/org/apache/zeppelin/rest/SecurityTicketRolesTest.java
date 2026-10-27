@@ -16,10 +16,15 @@
  */
 package org.apache.zeppelin.rest;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.notebook.AuthorizationService;
 import org.apache.zeppelin.notebook.NoteManager;
@@ -27,12 +32,6 @@ import org.apache.zeppelin.service.AuthenticationService;
 import org.apache.zeppelin.socket.ConnectionManager;
 import org.apache.zeppelin.socket.NotebookSocket;
 import org.apache.zeppelin.storage.ConfigStorage;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class SecurityTicketRolesTest {
   @Test
