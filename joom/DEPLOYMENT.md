@@ -9,6 +9,14 @@
 - [Конфигурация и сценарии](https://github.com/joomcode/datasci/tree/codex/zeppelin-012-balloon/analytics/joom/deploy/kubernetes-gcp/zeppelin).
 - [Карта старых коммитов и принятых решений](PORTS.md).
 
+## Завершение временного стенда
+
+27 октября отдельный namespace `zeppelin-012-audit` удалён вместе с его тестовыми
+ресурсами и Workload Identity binding. В deployment PR оставлены только рабочий
+chart, installer, bootstrap существующих notebook ACL и инструкция эксплуатации.
+Все значения 0.12.1 собраны в `chart-012/values.yaml`; отдельного overlay больше нет.
+Ниже сохранены исторические результаты проверок, проведённых до удаления стенда.
+
 ## Общее хранилище: обновление 27 октября
 
 По запросу пользователя balloon 0.12.1 подключён к тому же `S3NotebookRepo`, что
@@ -41,8 +49,8 @@ Production UI build успешен. Самостоятельный search index 
 Текущий server image: `0.12.1-joom-1-shared`, source
 `00372424fa04aea639d9832d1c16d11f908c0864`, digest
 `sha256:dab60e463b567291adfb73c1b8d7c79c4d97b81277488601c4bbe4a1f037db03`.
-Interpreter и Spark образы прежние. В datasci сохранены отдельные
-`audit-012/shared-storage-summary.json` и `shared-server-build-manifest.json`.
+Interpreter и Spark образы прежние. Подробные диагностические файлы сохранены
+локально; временные scripts и JSON-отчёты удалены из deployment PR после проверки.
 Настройки и пояснения находятся в [PR #35875](https://github.com/joomcode/datasci/pull/35875).
 
 Остальная часть отчёта ниже фиксирует первоначальный изолированный этап. Серии
@@ -163,8 +171,8 @@ BigQuery compute pod после проверок освобождены; инт�
 
 ## Воспроизведение и откат
 
-В deployment-ветке есть `README-012.md`, `install-test-012.sh`, отдельный chart и
-`audit-012/verification-summary.json` со сценариями. Локальные raw logs, browser
+В deployment-ветке есть `README-012.md`, `install-test-012.sh` и отдельный
+`chart-012` со всеми Helm values в его `values.yaml`. Локальные raw logs, browser
 traces/state, credentials, оригинальные note JSON и cluster backups остаются в
 закрытом `/private/tmp/zeppelin-012-balloon`; в Git их нет.
 
