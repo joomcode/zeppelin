@@ -1,0 +1,10 @@
+# UI-only overlay: preserve the already validated server/interpreter runtime.
+ARG SERVER_BASE=europe-west4-docker.pkg.dev/gcp-joomanalytics-platform/images/zeppelin@sha256:dab60e463b567291adfb73c1b8d7c79c4d97b81277488601c4bbe4a1f037db03
+FROM ${SERVER_BASE}
+USER 0
+ARG SOURCE_REVISION
+LABEL org.opencontainers.image.source="https://github.com/joomcode/zeppelin" \
+      org.opencontainers.image.revision="${SOURCE_REVISION}"
+RUN rm -f /opt/zeppelin/zeppelin-web-angular-*.war
+COPY zeppelin-web-angular.war /opt/zeppelin/zeppelin-web-angular-0.12.1-joom-1.war
+USER 1000:0

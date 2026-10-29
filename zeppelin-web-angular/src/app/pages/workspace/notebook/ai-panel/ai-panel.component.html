@@ -1,0 +1,12 @@
+<aside *ngIf="enabled" class="ai-panel" [class.open]="open">
+  <button nz-button (click)="open = !open" [attr.aria-expanded]="open">{{ open ? 'Close AI' : 'AI SQL' }}</button>
+  <iframe
+    *ngIf="open && frameUrl"
+    #frame
+    title="Iron Head Spark SQL assistant"
+    [src]="frameUrl"
+    (load)="sendContext()"
+    referrerpolicy="origin"
+    allow="clipboard-write"
+  ></iframe>
+</aside>

@@ -56,6 +56,7 @@ import { NotebookRoutingModule } from './notebook-routing.module';
 import { NotebookComponent } from './notebook.component';
 import { NotebookShareModule } from './share/share.module';
 import { NotebookSidebarComponent } from './sidebar/sidebar.component';
+import { NotebookAiPanelComponent } from './ai-panel/ai-panel.component';
 
 @NgModule({
   declarations: [
@@ -71,7 +72,8 @@ import { NotebookSidebarComponent } from './sidebar/sidebar.component';
     NotebookParagraphFooterComponent,
     NotebookParagraphControlComponent,
     NoteFormBlockComponent,
-    NotebookSidebarComponent
+    NotebookSidebarComponent,
+    NotebookAiPanelComponent
   ],
   imports: [
     CommonModule,
