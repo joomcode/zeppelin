@@ -1,3 +1,13 @@
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//     http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // Exercise the real host adapter without a browser or Zeppelin server.
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
@@ -42,7 +52,7 @@ async function host(options = {}) {
     getBase: () => 'https://analytics.joom.ai/balloon-gcp/',
     skipTrailingSlash: value => value.replace(/\/$/, ''),
     getRestApiBase: () => 'https://analytics.joom.ai/balloon-gcp/api'
-  }, { bypassSecurityTrustResourceUrl: value => value });
+  }, { bypassSecurityTrustResourceUrl: value => value }, { markForCheck() {} });
   panel.noteId = 'note-a'; panel.connected = true; panel.bindings = [binding];
   panel.frame = { nativeElement: { contentWindow: frame } }; panel.open = true;
   await panel.ngOnInit();
@@ -61,6 +71,16 @@ test('unique bound Spark SQL magic is required', async () => {
   assert.equal(panel.sqlMagic, '%prod.sql');
   panel.bindings = [binding, { ...binding, name: 'other' }];
   assert.equal(panel.canInsert, false);
+});
+test('an explicit notebook default disambiguates Spark and Comet; an unknown default does not', async () => {
+  const { panel } = await host();
+  panel.bindings = [{ ...binding, id: 'prod-id' }, { ...binding, id: 'comet-id', name: 'comet' }];
+  panel.defaultInterpreterGroup = 'prod-id';
+  assert.equal(panel.sqlMagic, '%prod.sql');
+  panel.defaultInterpreterGroup = 'comet';
+  assert.equal(panel.sqlMagic, '%comet.sql');
+  panel.defaultInterpreterGroup = 'unknown';
+  assert.equal(panel.sqlMagic, null);
 });
 test('untrusted origins and source windows cannot insert', async () => {
   const { panel, frame, writes } = await host();

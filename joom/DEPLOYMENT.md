@@ -198,7 +198,9 @@ The independent panel generates SQL using published Spark agents. The host
 adapter accepts messages only from its configured iframe origin/window and
 checks notebook/context IDs. It inserts a new paragraph through the normal
 notebook API (including server ACL checks), using the unique bound
-`org.apache.zeppelin.spark.SparkSqlInterpreter` magic. Ambiguous bindings,
+`org.apache.zeppelin.spark.SparkSqlInterpreter` magic. When several Spark
+settings are bound, an explicit notebook default must identify exactly one
+of them; list order is never used to guess. Ambiguous bindings,
 report/revision views and disconnected hosts permit copying only. A network
 failure after submission has an unknown outcome: check the notebook before a
 manual retry. Neither the panel nor the adapter runs the resulting paragraph.

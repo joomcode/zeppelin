@@ -102,6 +102,7 @@
     <zeppelin-notebook-ai-panel
       [noteId]="note.id"
       [bindings]="interpreterBindings"
+    [defaultInterpreterGroup]="note.defaultInterpreterGroup"
       [readOnly]="viewOnly || revisionView"
       [connected]="messageService.connectedStatus"
     ></zeppelin-notebook-ai-panel>

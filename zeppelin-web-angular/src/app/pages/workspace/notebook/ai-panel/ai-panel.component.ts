@@ -10,7 +10,16 @@
  * limitations under the License.
  */
 
-import { Component, ElementRef, Input, OnChanges, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  Input,
+  OnChanges,
+  OnDestroy,
+  OnInit,
+  ViewChild
+} from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { InterpreterBindingItem } from '@zeppelin/sdk';
 import { BaseUrlService } from '@zeppelin/services/base-url.service';
@@ -28,6 +37,7 @@ export class NotebookAiPanelComponent implements OnInit, OnChanges, OnDestroy {
   @Input() readOnly = false;
   @Input() connected = false;
   @Input() bindings: InterpreterBindingItem[] = [];
+  @Input() defaultInterpreterGroup = '';
   @ViewChild('frame') frame?: ElementRef<HTMLIFrameElement>;
   enabled = false;
   open = false;
@@ -52,6 +62,7 @@ export class NotebookAiPanelComponent implements OnInit, OnChanges, OnDestroy {
       this.frameReady = true;
       this.frameError = false;
       window.clearTimeout(this.readyTimer);
+      this.cdr.markForCheck();
       this.sendContext();
     } else if (data.type === 'insert') {
       void this.insert(data);
@@ -59,17 +70,27 @@ export class NotebookAiPanelComponent implements OnInit, OnChanges, OnDestroy {
   };
 
   get sqlMagic(): string | null {
-    const candidates: string[] = [];
+    const candidates: { magic: string; binding: InterpreterBindingItem }[] = [];
     for (const binding of this.bindings) {
       if (binding.selected) {
         for (const item of binding.interpreters) {
           if (item.class === 'org.apache.zeppelin.spark.SparkSqlInterpreter') {
-            candidates.push(`%${binding.name}.${item.name}`);
+            candidates.push({ magic: `%${binding.name}.${item.name}`, binding });
           }
         }
       }
     }
-    return candidates.length === 1 ? candidates[0] : null;
+    // Zeppelin 0.12 reports all available settings as bound. An explicit
+    // notebook default can disambiguate Spark vs. Comet without guessing from
+    // list order or reading paragraph contents.
+    const resolved =
+      candidates.length > 1 && this.defaultInterpreterGroup
+        ? candidates.filter(
+            ({ binding }) =>
+              binding.id === this.defaultInterpreterGroup || binding.name === this.defaultInterpreterGroup
+          )
+        : candidates;
+    return resolved.length === 1 ? resolved[0].magic : null;
   }
 
   get canInsert(): boolean {
@@ -84,6 +105,7 @@ export class NotebookAiPanelComponent implements OnInit, OnChanges, OnDestroy {
     if (this.open) {
       this.readyTimer = window.setTimeout(() => {
         this.frameError = !this.frameReady;
+        this.cdr.markForCheck();
       }, 15000);
     }
   }
@@ -113,6 +135,7 @@ export class NotebookAiPanelComponent implements OnInit, OnChanges, OnDestroy {
       this.panelPageUrl = url.toString();
       this.frameUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url.toString());
       this.enabled = true;
+      this.cdr.markForCheck();
     } catch {
       // Optional configuration/AI failures must never interrupt the notebook.
     }
@@ -209,6 +232,7 @@ export class NotebookAiPanelComponent implements OnInit, OnChanges, OnDestroy {
 
   constructor(
     private baseUrl: BaseUrlService,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private cdr: ChangeDetectorRef
   ) {}
 }
