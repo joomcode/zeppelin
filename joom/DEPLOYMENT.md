@@ -186,3 +186,29 @@ kubectl --context analytics-gke -n zeppelin-test scale deployment zeppelin-serve
 Старый релиз и его данные остаются на месте. Повторный `install-test-012.sh`
 возвращает pilot. PVC пилота помечены `helm.sh/resource-policy: keep`; их удаление
 требует отдельного решения после окончания проверки.
+
+## Optional Iron Head Spark SQL panel
+
+The notebook UI reads `<context>/ai-config.json` once. A missing endpoint or
+`{"enabled":false}` disables the integration. The Helm nginx gateway serves
+`{"enabled":true,"panelUrl":"https://iron-head-stage.joom.ai/embed/sql"}` for
+the pilot. No AI key, Zeppelin ticket or editor text is sent across the bridge.
+
+The independent panel generates SQL using published Spark agents. The host
+adapter accepts messages only from its configured iframe origin/window and
+checks notebook/context IDs. It inserts a new paragraph through the normal
+notebook API (including server ACL checks), using the unique bound
+`org.apache.zeppelin.spark.SparkSqlInterpreter` magic. When several Spark
+settings are bound, an explicit notebook default must identify exactly one
+of them; list order is never used to guess. Ambiguous bindings,
+report/revision views and disconnected hosts permit copying only. A network
+failure after submission has an unknown outcome: check the notebook before a
+manual retry. Neither the panel nor the adapter runs the resulting paragraph.
+
+For UI-only changes, set `JAVA_HOME` and an explicit GAR `IMAGE` tag and run
+`joom/build-ui-image.sh`. It builds the UI WAR and overlays it on the pinned,
+validated server image in `joom/Dockerfile.ui`; interpreter and server JARs are
+unchanged. The OCI revision records the UI source revision; `/api/version`
+still identifies the underlying server build. Roll back by disabling the
+runtime config or selecting the previous server image. The protocol and AI
+backend remain independent when replacing this editor.
