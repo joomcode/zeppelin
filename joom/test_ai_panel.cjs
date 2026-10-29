@@ -46,6 +46,7 @@ async function host(options = {}) {
   panel.noteId = 'note-a'; panel.connected = true; panel.bindings = [binding];
   panel.frame = { nativeElement: { contentWindow: frame } }; panel.open = true;
   await panel.ngOnInit();
+  panel.receive({ origin: 'https://iron-head-stage.joom.ai', source: frame, data: { ...CHANNEL, type: 'ready' } });
   const insert = (extra = {}) => panel.insert({ requestId: 'request-a', noteId: panel.noteId,
     contextId: panel.contextId, dialect: 'spark', sql: 'SELECT 1', ...extra });
   return { panel, writes, replies, frame, insert };
@@ -104,4 +105,12 @@ test('unknown network outcome is never automatically replayed', async () => {
   await insert(); await insert();
   assert.equal(writes.length, 1);
   assert.match(replies.at(-1).payload.error, /Check the notebook/);
+});
+
+test('an unknown embedded application stays hidden until the protocol handshake', async () => {
+  const { panel } = await host();
+  panel.toggle(); panel.toggle();
+  assert.equal(panel.frameReady, false);
+  assert.equal(panel.canInsert, false);
+  panel.ngOnDestroy();
 });

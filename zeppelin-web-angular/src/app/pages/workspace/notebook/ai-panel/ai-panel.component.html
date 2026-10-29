@@ -1,7 +1,13 @@
 <aside *ngIf="enabled" class="ai-panel" [class.open]="open">
-  <button nz-button (click)="open = !open" [attr.aria-expanded]="open">{{ open ? 'Close AI' : 'AI SQL' }}</button>
+  <button nz-button (click)="toggle()" [attr.aria-expanded]="open">{{ open ? 'Close AI' : 'AI SQL' }}</button>
+  <p *ngIf="open && !frameReady" role="status">
+    {{ frameError ? 'AI panel is unavailable or needs sign-in.' : 'Connecting to the AI panel…' }}
+    <a [href]="panelPageUrl" target="_blank" rel="noopener noreferrer">Open Iron Head / sign in</a>
+    , then reopen this panel.
+  </p>
   <iframe
     *ngIf="open && frameUrl"
+    [style.visibility]="frameReady ? 'visible' : 'hidden'"
     #frame
     title="Iron Head Spark SQL assistant"
     [src]="frameUrl"

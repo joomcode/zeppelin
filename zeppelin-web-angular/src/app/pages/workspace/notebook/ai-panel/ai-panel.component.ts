@@ -31,7 +31,11 @@ export class NotebookAiPanelComponent implements OnInit, OnChanges, OnDestroy {
   @ViewChild('frame') frame?: ElementRef<HTMLIFrameElement>;
   enabled = false;
   open = false;
+  frameReady = false;
+  frameError = false;
+  private readyTimer?: number;
   frameUrl?: SafeResourceUrl;
+  panelPageUrl = '';
   private panelOrigin = '';
   private contextId = this.newContextId();
   private insertionIds = new Set<string>();
@@ -45,6 +49,9 @@ export class NotebookAiPanelComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
     if (data.type === 'ready') {
+      this.frameReady = true;
+      this.frameError = false;
+      window.clearTimeout(this.readyTimer);
       this.sendContext();
     } else if (data.type === 'insert') {
       void this.insert(data);
@@ -66,7 +73,19 @@ export class NotebookAiPanelComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   get canInsert(): boolean {
-    return !!this.noteId && this.connected && !this.readOnly && !!this.sqlMagic;
+    return this.frameReady && !!this.noteId && this.connected && !this.readOnly && !!this.sqlMagic;
+  }
+
+  toggle() {
+    this.open = !this.open;
+    this.frameReady = false;
+    this.frameError = false;
+    window.clearTimeout(this.readyTimer);
+    if (this.open) {
+      this.readyTimer = window.setTimeout(() => {
+        this.frameError = !this.frameReady;
+      }, 15000);
+    }
   }
 
   private newContextId(): string {
@@ -91,6 +110,7 @@ export class NotebookAiPanelComponent implements OnInit, OnChanges, OnDestroy {
       }
       url.searchParams.set('parentOrigin', window.location.origin);
       this.panelOrigin = url.origin;
+      this.panelPageUrl = url.toString();
       this.frameUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url.toString());
       this.enabled = true;
     } catch {
@@ -111,7 +131,7 @@ export class NotebookAiPanelComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private post(payload: object) {
-    if (this.open && this.panelOrigin) {
+    if (!this.destroyed && this.open && this.panelOrigin) {
       this.frame?.nativeElement.contentWindow?.postMessage(
         { channel: CHANNEL, version: 1, ...payload },
         this.panelOrigin
@@ -183,6 +203,7 @@ export class NotebookAiPanelComponent implements OnInit, OnChanges, OnDestroy {
 
   ngOnDestroy() {
     this.destroyed = true;
+    window.clearTimeout(this.readyTimer);
     window.removeEventListener('message', this.receive);
   }
 
