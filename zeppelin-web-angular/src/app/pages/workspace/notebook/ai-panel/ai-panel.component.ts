@@ -159,10 +159,12 @@ export class NotebookAiPanelComponent implements OnInit, OnChanges, OnDestroy {
           body: JSON.stringify({ title: 'AI SQL draft', text: `${this.sqlMagic}\n${data.sql}` })
         }
       );
+      if (response.status === 401 || response.status === 403) {
+        reply({ ok: false, error: 'You do not have permission to add a paragraph. Sign in or copy SQL instead.' });
+        return;
+      }
       if (!response.ok) {
-        throw new Error(
-          response.status === 403 ? 'You do not have permission to add a paragraph.' : 'Insertion failed.'
-        );
+        throw new Error('Insertion failed.');
       }
       const result = await response.json();
       if (result.status !== 'OK') {
