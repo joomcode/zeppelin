@@ -6,10 +6,14 @@ cd "$(dirname "$0")/.."
 
 # Dependencies/SDK are the same as the regular joom/build.sh build. Keep the
 # Docker context to one WAR; no notebook data or local configuration is sent.
-(
-  cd zeppelin-web-angular
-  ./node/node ./node/node_modules/npm/bin/npm-cli.js run build
-)
+if [[ "${SKIP_UI_BUILD:-0}" != "1" ]]; then
+  (
+    cd zeppelin-web-angular
+    ./node/node ./node/node_modules/npm/bin/npm-cli.js run build
+  )
+fi
+[[ -f zeppelin-web-angular/dist/zeppelin/index.html ]]
+[[ -f zeppelin-web-angular/dist/zeppelin/WEB-INF/web.xml ]]
 build_context="$(mktemp -d "${TMPDIR:-/tmp}/zeppelin-ui.XXXXXX")"
 trap 'rm -rf "$build_context"' EXIT
 "$JAVA_HOME/bin/jar" cf "$build_context/zeppelin-web-angular.war" -C zeppelin-web-angular/dist/zeppelin .
