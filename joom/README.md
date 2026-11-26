@@ -1,10 +1,20 @@
 # Zeppelin 0.12.1 Joom fork
 
+The maintained release branch is [`joom-0.12`](https://github.com/joomcode/zeppelin/tree/joom-0.12),
+following the existing `joom-0.9` branch convention. It contains the migration fixes
+and the standard Zeppelin UI. The experimental AI adapter remains in a separate draft PR.
+
 This branch maintains the Joom behaviors documented in [PORTS.md](PORTS.md) on the
 unchanged Apache 0.12.1 API shape. Each functional change has its original commit
 references in the Git message and its own regression coverage.
 
 ## Build
+
+Product images are built explicitly from this branch. As with `joom-0.9` and its
+`dev/build_joom_release.sh`, compiling/publishing the product is a separate step
+from deploying it. For 0.12, `joom/build.sh` prepares and tests the product artifacts;
+the Docker commands below publish the server and interpreter images. Datasci CI
+updates the analytics/Spark runtime and deploys the reviewed chart image pins.
 
 Use JDK11 (as pinned in pom.xml), the Maven wrapper and the upstream-pinned Node18.
 The server uses Java11. Interpreter images use the current matched Java17/Spark3.5.3
@@ -71,10 +81,13 @@ before an injection can count as a valid result.
 ## Balloon deployment
 
 GCP balloon is namespace `zeppelin-test` in context `analytics-gke`, served through
-https://analytics.joom.ai/balloon-gcp/. The old test service shares the 0.9 notebook
-bucket/prefix. The 0.12 pilot must use separate notebook, search and local-repo PVCs;
-retain the old PVC resources and Helm revision for rollback. Copy selected notes
-without executing their production statements.
+https://analytics.joom.ai/balloon-gcp/. Both versions use the shared S3 notebook
+repository `s3://joom-analytics-notebooks/zeppelin-09/notebook/`. The 0.12 release
+keeps its own search index and mutable ACL/interpreter state on PVCs; its earlier
+local notebook volume is retained as a backup. Preserve the old release for an
+explicit rollback. Notebook edits affect the shared repository; reverting the
+server does not undo saved edits. Datasci deployment and CI instructions are in
+[README-012.md](https://github.com/joomcode/datasci/blob/codex/zeppelin-012-balloon/analytics/joom/deploy/kubernetes-gcp/zeppelin/README-012.md).
 
 Use existing per-team Workload Identity, not copied long-lived keys. Cloud test
 operations are restricted to `joom-analytics.junk_aleksandrov` and its approved GCS

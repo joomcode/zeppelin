@@ -5,7 +5,7 @@
 рабочие ноутбуки в production.
 
 - [Открыть демонстрационный ноутбук](https://analytics.joom.ai/balloon-gcp/#/notebook/2N8T2B9VJ).
-- [Ветка продукта](https://github.com/joomcode/zeppelin/tree/codex/joom-0.12.1).
+- [Ветка продукта](https://github.com/joomcode/zeppelin/tree/joom-0.12).
 - [Конфигурация и сценарии](https://github.com/joomcode/datasci/tree/codex/zeppelin-012-balloon/analytics/joom/deploy/kubernetes-gcp/zeppelin).
 - [Карта старых коммитов и принятых решений](PORTS.md).
 
