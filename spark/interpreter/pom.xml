@@ -58,6 +58,7 @@
     <!-- settings -->
     <pyspark.test.exclude>**/PySparkInterpreterMatplotlibTest.java</pyspark.test.exclude>
     <pyspark.test.include>**/*Test.*</pyspark.test.include>
+    <skipBundledPySpark>false</skipBundledPySpark>
 
     <extraJavaTestArgs></extraJavaTestArgs>
   </properties>
@@ -313,6 +314,7 @@
               <goal>run</goal>
             </goals>
             <configuration>
+              <skip>${skipBundledPySpark}</skip>
               <target>
                 <delete dir="../../interpreter/spark/pyspark" />
                 <copy file="${project.build.directory}/${spark.archive}/python/lib/py4j-${py4j.version}-src.zip" todir="${project.build.directory}/../../../interpreter/spark/pyspark" />

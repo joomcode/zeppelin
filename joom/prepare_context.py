@@ -36,6 +36,9 @@ def copy(source, target):
 def tree(source, target):
     for path in source.rglob('*'):
         if path.is_file():
+            # Never package a stale upstream PySpark left by an earlier build.
+            if source.name == 'spark' and path.relative_to(source).parts[0] == 'pyspark':
+                continue
             # A previous upstream build can remain in target/interpreter after versioning.
             if path.name.endswith('-0.12.1.jar'):
                 continue
@@ -71,19 +74,16 @@ copy(shiro, overlay / 'lib' / shiro.name)
 files = {str(p.relative_to(overlay)): hashlib.sha256(p.read_bytes()).hexdigest()
          for p in sorted(overlay.rglob('*')) if p.is_file()}
 metadata = {'version': VERSION, 'source_revision': REVISION, 'upstream': 'ae9cb72ff',
-            'spark_runtime_tag': '1.1.3518',
-            'spark_runtime_digest': 'sha256:f6982e5c61f0c426630f8087c5ce8226bedb4d9bf020c4e4491abe3790a45020',
+            'spark_runtime': 'external: supplied by the datasci Joom Spark image',
             'files_sha256': files}
 (overlay / 'joom-build.json').write_text(json.dumps(metadata, indent=2) + '\n')
 copy(ROOT / 'joom/Dockerfile', DEST / 'Dockerfile')
 (DEST / '.gcloudignore').write_text('.gcloudignore\n')
 image = f'europe-west4-docker.pkg.dev/gcp-joomanalytics-platform/images/zeppelin:{VERSION}'
-steps = []
-for target, tag in [('server', image), ('interpreter', image + '-interpreter')]:
-    steps.append({'name': 'gcr.io/cloud-builders/docker', 'args': [
-        'build', '--target', target, '--build-arg', 'SOURCE_REVISION=' + REVISION,
-        '--tag', tag, '.']})
-config = {'steps': steps, 'images': [image, image + '-interpreter'], 'timeout': '2400s',
+step = {'name': 'gcr.io/cloud-builders/docker', 'args': [
+    'build', '--target', 'server', '--build-arg', 'SOURCE_REVISION=' + REVISION,
+    '--tag', image, '.']}
+config = {'steps': [step], 'images': [image], 'timeout': '2400s',
           'options': {'machineType': 'E2_HIGHCPU_8'}}
 (DEST / 'cloudbuild.json').write_text(json.dumps(config, indent=2) + '\n')
 print(json.dumps({'context': str(DEST), 'version': VERSION, 'revision': REVISION,

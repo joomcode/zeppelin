@@ -14,18 +14,10 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 : "${JAVA_HOME:?Set JAVA_HOME to a JDK 11 installation}"
 export MAVEN_OPTS="${MAVEN_OPTS:--Xmx3g}"
-mkdir -p joom/cache spark/interpreter/target
-archive=joom/cache/spark-3.5.3.tgz
-if [[ ! -f "$archive" ]]; then
-  curl -fL --retry 3 https://archive.apache.org/dist/spark/spark-3.5.3/spark-3.5.3.tgz -o "$archive"
-fi
-python3 - "$archive" <<'CHECK'
-import hashlib,sys
-assert hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest() == '550b63c794afbb82d5d54c1dc4b9e17002dc2a7e272bcee06554674c0d5cf24a'
-CHECK
-tar -xzf "$archive" -C spark/interpreter/target spark-3.5.3/python
+mkdir -p joom/cache
 modules=zeppelin-server,markdown,shell,bigquery,spark/scala-2.12,zeppelin-plugins/launcher/k8s-standard,zeppelin-plugins/notebookrepo/gcs,zeppelin-plugins/notebookrepo/s3
-common=(-B -ntp -pl "$modules" -am -Dmaven.gitcommitid.nativegit=true -Ddownload.plugin.skip=true -Dcheckstyle.skip=true -Pspark-3.5 -Pspark-scala-2.12)
+# Runtime Spark/PySpark comes from datasci's Spark image, not an Apache archive.
+common=(-B -ntp -pl "$modules" -am -Dmaven.gitcommitid.nativegit=true -Ddownload.plugin.skip=true -DskipBundledPySpark=true -Dcheckstyle.skip=true -Pspark-3.5 -Pspark-scala-2.12)
 ./mvnw "${common[@]}" install -DskipTests
 ./mvnw "${common[@]}" test -Dsurefire.failIfNoSpecifiedTests=false '-Dtest=AuthorizationPolicyTest,NoteAuthTest,NoteTest,LuceneSearchTest,NotebookServiceTest,NotebookRestApiTest#testRestParagraphEditsUpdateSearch,RemoteInterpreterCloseTest,ManagedInterpreterGroupTest,PooledRemoteFailureTest,BigQueryResultTest,DnsReadyTest,SparkUtilsTest,SparkInterpreterTest#testSparkInterpreter'
 python3 joom/test_impersonation.py

@@ -13,27 +13,29 @@ references in the Git message and its own regression coverage.
 Product images are built explicitly from this branch. As with `joom-0.9` and its
 `dev/build_joom_release.sh`, compiling/publishing the product is a separate step
 from deploying it. For 0.12, `joom/build.sh` prepares and tests the product artifacts;
-the Docker commands below publish the server and interpreter images. Datasci CI
-updates the analytics/Spark runtime and deploys the reviewed chart image pins.
+the Docker command below publishes the server and its Zeppelin artifacts.
+Datasci CI combines those artifacts directly with our Spark/analytics image,
+as in the 0.9 build, and deploys the matched test runtime.
 
 Use JDK11 (as pinned in pom.xml), the Maven wrapper and the upstream-pinned Node18.
-The server uses Java11. Interpreter images use the current matched Java17/Spark3.5.3
-runtime from GCP. Server and interpreter JARs both come from this same source tree.
+The server uses Java11. Datasci supplies Java17, our Spark 3.5.3 fork and Python
+3.11 for the driver and executors. Server and interpreter JARs both come from
+this same source tree. There is no intermediate product interpreter image.
 
 ```sh
 export JAVA_HOME=/path/to/jdk-11
 bash joom/build.sh
 ```
 
-The script verifies the exact Spark3.5.3 source archive, rebuilds the shaded RPC
-chain and Scala2.12 module, runs selected regression tests, checks changed Java
+The script rebuilds the shaded RPC chain and Scala2.12 module without downloading
+or bundling upstream PySpark, runs selected regression tests, checks changed Java
 lines, adapts the pinned remote-user extension and builds the active Angular WAR.
 The upstream baseline contains existing Checkstyle violations. They are counted
 separately; new errors on added lines fail `check_changed_style.py`.
 
 Review `joom/build-context/overlay/joom-build.json` (source revision and every
-artifact SHA256), then build and push the two amd64 targets. Local Docker is the
-verified path for this pilot; the default Cloud Build compute account cannot read
+artifact SHA256), then build and push the amd64 server target. Local Docker was the
+verified path for the pilot; the default Cloud Build compute account cannot read
 uploaded sources, and no additional IAM grant was added.
 
 ```sh
@@ -41,8 +43,6 @@ revision=$(git rev-parse HEAD)
 image=europe-west4-docker.pkg.dev/gcp-joomanalytics-platform/images/zeppelin:0.12.1-joom-1
 docker buildx build --platform linux/amd64 --target server \
   --build-arg SOURCE_REVISION="$revision" --tag "$image" --push joom/build-context
-docker buildx build --platform linux/amd64 --target interpreter \
-  --build-arg SOURCE_REVISION="$revision" --tag "$image-interpreter" --push joom/build-context
 ```
 
 A Cloud Build configuration is also generated for an environment with an already
@@ -50,8 +50,13 @@ configured build identity and source/log/registry access.
 
 The explicit build context contains JAR/WAR outputs and metadata only. It excludes
 notebooks, live configuration, cloud credentials, browser state and test traces.
-Image bases are pinned by digest; Java17/Spark runtime initially matches GCP test
-build 1.1.3518. Use the resulting image digest when deploying.
+The server base is pinned by digest. Use the resulting server digest both for
+the test server and as `ZEPPELIN_IMAGE` in datasci's interpreter build; its final
+runtime comes directly from the matching Joom Spark image. PySpark and py4j come
+only from that Spark distribution under `SPARK_HOME`, with no bundled fallback.
+The Maven adapter tests use upstream 3.5.3 dependencies with `provided` scope;
+they do not establish runtime compatibility with our fork. Datasci's image smoke
+test and a fresh-session distributed test must validate the actual runtime.
 
 ## Browser regressions
 
